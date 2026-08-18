@@ -3,71 +3,180 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Budget Battle</title>
+
+  <title>BIDOFF</title>
 
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
-      font-family: Arial, sans-serif;
-      background: #111827;
+      min-height: 100vh;
+      font-family: Arial, Helvetica, sans-serif;
+      background:
+        radial-gradient(circle at 20% 20%, #263a70 0%, transparent 35%),
+        radial-gradient(circle at 80% 80%, #43215f 0%, transparent 35%),
+        #080b14;
       color: white;
+    }
+
+    .page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 30px 20px;
+    }
+
+    .content {
+      width: 100%;
+      max-width: 900px;
       text-align: center;
     }
 
-    .container {
-      max-width: 700px;
-      margin: 0 auto;
-      padding: 80px 20px;
-    }
-
-    h1 {
-      font-size: 52px;
-      margin-bottom: 10px;
+    .logo {
+      font-size: clamp(58px, 12vw, 110px);
+      font-weight: 900;
+      letter-spacing: -6px;
+      margin: 0;
     }
 
     .tagline {
+      margin-top: 10px;
       font-size: 20px;
-      color: #9ca3af;
-      margin-bottom: 50px;
+      color: #aeb6ca;
+    }
+
+    .buttons {
+      margin: 45px auto 0;
+      max-width: 420px;
     }
 
     button {
-      display: block;
       width: 100%;
-      max-width: 400px;
-      margin: 15px auto;
-      padding: 18px;
       border: none;
-      border-radius: 12px;
-      font-size: 20px;
-      font-weight: bold;
+      border-radius: 16px;
+      padding: 19px;
+      margin: 8px 0;
+      font-size: 18px;
+      font-weight: 800;
       cursor: pointer;
-      background: white;
-      color: #111827;
+      transition: transform 0.15s ease, opacity 0.15s ease;
     }
 
     button:hover {
-      transform: scale(1.02);
+      transform: translateY(-2px);
+    }
+
+    .play {
+      background: white;
+      color: #080b14;
+      font-size: 21px;
+    }
+
+    .secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .modes {
+      margin-top: 70px;
+    }
+
+    .modes h2 {
+      font-size: 15px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #8d96ad;
+    }
+
+    .mode-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .mode {
+      padding: 22px 10px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      font-weight: 700;
+    }
+
+    .mode span {
+      display: block;
+      font-size: 30px;
+      margin-bottom: 8px;
+    }
+
+    @media (max-width: 650px) {
+      .mode-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .logo {
+        letter-spacing: -4px;
+      }
     }
   </style>
 </head>
 
 <body>
 
-  <div class="container">
+  <main class="page">
 
-    <h1>💰 Budget Battle</h1>
+    <div class="content">
 
-    <p class="tagline">
-      Bid. Build. Battle.
-    </p>
+      <h1 class="logo">BIDOFF</h1>
 
-    <button>⚡ PLAY</button>
-    <button>🎮 BROWSE GAMES</button>
-    <button>➕ CREATE GAME</button>
-    <button>🔗 JOIN GAME</button>
+      <p class="tagline">
+        Bid. Build. Battle.
+      </p>
 
-  </div>
+      <div class="buttons">
+        <button class="play">PLAY NOW</button>
+        <button class="secondary">CREATE GAME</button>
+        <button class="secondary">JOIN GAME</button>
+      </div>
+
+      <section class="modes">
+
+        <h2>Play anything</h2>
+
+        <div class="mode-grid">
+
+          <div class="mode">
+            <span>🏀</span>
+            NBA
+          </div>
+
+          <div class="mode">
+            <span>⚽</span>
+            Football
+          </div>
+
+          <div class="mode">
+            <span>🦸</span>
+            Heroes
+          </div>
+
+          <div class="mode">
+            <span>🌎</span>
+            Perfect Life
+          </div>
+
+        </div>
+
+      </section>
+
+    </div>
+
+  </main>
 
 </body>
 </html>
