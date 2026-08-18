@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Create BidOff</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #080b14;
+      color: white;
+    }
+
+    .page {
+      max-width: 700px;
+      margin: auto;
+      padding: 40px 20px 80px;
+    }
+
+    .back {
+      color: #9ca3af;
+      text-decoration: none;
+      font-size: 15px;
+    }
+
+    h1 {
+      font-size: 42px;
+      margin: 45px 0 8px;
+    }
+
+    .subtitle {
+      color: #9ca3af;
+      margin-bottom: 40px;
+    }
+
+    .section {
+      margin-bottom: 30px;
+    }
+
+    .section-title {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #8d96ad;
+      margin-bottom: 12px;
+    }
+
+    .options {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .option {
+      padding: 18px;
+      border-radius: 14px;
+      background: #151a29;
+      border: 1px solid #242b3d;
+      color: white;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .option:hover {
+      background: #1c2335;
+    }
+
+    .option.selected {
+      border-color: white;
+      background: #252d42;
+    }
+
+    .start {
+      width: 100%;
+      margin-top: 15px;
+      padding: 19px;
+      border: none;
+      border-radius: 15px;
+      background: white;
+      color: #080b14;
+      font-size: 19px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .start:hover {
+      transform: translateY(-2px);
+    }
+  </style>
+</head>
+
+<body>
+
+  <main class="page">
+
+    <a class="back" href="index.html">← Back</a>
+
+    <h1>Create BidOff</h1>
+
+    <p class="subtitle">
+      Set the rules and challenge your opponents.
+    </p>
+
+
+    <div class="section">
+
+      <div class="section-title">
+        Choose a category
+      </div>
+
+      <div class="options">
+
+        <button class="option">🏆 Sports</button>
+        <button class="option">🌎 Life</button>
+        <button class="option">🎬 Film & TV</button>
+        <button class="option">🎮 Gaming</button>
+        <button class="option">🌟 Fiction</button>
+        <button class="option">🎵 Entertainment</button>
+
+      </div>
+
+    </div>
+
+
+    <div class="section">
+
+      <div class="section-title">
+        Number of players
+      </div>
+
+      <div class="options">
+
+        <button class="option">2 Players</button>
+        <button class="option">3 Players</button>
+        <button class="option">4 Players</button>
+
+      </div>
+
+    </div>
+
+
+    <div class="section">
+
+      <div class="section-title">
+        Auction type
+      </div>
+
+      <div class="options">
+
+        <button class="option">🔒 Blind Bid</button>
+        <button class="option">⚔️ Open Bid</button>
+
+      </div>
+
+    </div>
+
+
+    <div class="section">
+
+      <div class="section-title">
+        Budget
+      </div>
+
+      <div class="options">
+
+        <button class="option">$10</button>
+        <button class="option selected">$20</button>
+        <button class="option">$50</button>
+
+      </div>
+
+    </div>
+
+
+    <div class="section">
+
+      <div class="section-title">
+        Slots per player
+      </div>
+
+      <div class="options">
+
+        <button class="option">3</button>
+        <button class="option selected">5</button>
+        <button class="option">10</button>
+
+      </div>
+
+    </div>
+
+
+    <button class="start">
+      CREATE BIDOFF →
+    </button>
+
+  </main>
+
+</body>
+</html>
