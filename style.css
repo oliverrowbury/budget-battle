@@ -151,12 +151,27 @@ button:hover {
   padding: 0 18px 18px;
 }
 
-.category.open .category-content {
+.category.open > .category-content {
+  display: block;
+}
+
+.category-content > .category {
+  margin-bottom: 10px;
+}
+
+.category-content > .game {
+  margin-bottom: 10px;
+}
+
+.category-content .category-content {
+  padding: 0 12px 12px;
+}
+
+.category-content .category.open > .category-content {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
 }
-
 /* =========================
    GAME CARDS
 ========================= */
