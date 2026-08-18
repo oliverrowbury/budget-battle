@@ -24,104 +24,118 @@
 
     .page {
       min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 30px 20px;
+      padding: 70px 20px;
     }
 
     .content {
       width: 100%;
       max-width: 900px;
+      margin: auto;
       text-align: center;
     }
 
     .logo {
-      font-size: clamp(58px, 12vw, 110px);
+      font-size: clamp(60px, 12vw, 110px);
       font-weight: 900;
-      letter-spacing: -6px;
-      margin: 0;
+      letter-spacing: -5px;
+      margin: 20px 0 5px;
     }
 
     .tagline {
-      margin-top: 10px;
       font-size: 20px;
       color: #aeb6ca;
+      margin-bottom: 45px;
     }
 
     .buttons {
-      margin: 45px auto 0;
       max-width: 420px;
+      margin: auto;
     }
 
     button {
       width: 100%;
-      border: none;
-      border-radius: 16px;
       padding: 19px;
-      margin: 8px 0;
-      font-size: 18px;
+      margin: 7px 0;
+      border-radius: 15px;
+      border: none;
+      font-size: 19px;
       font-weight: 800;
       cursor: pointer;
-      transition: transform 0.15s ease, opacity 0.15s ease;
+      transition: 0.15s ease;
     }
 
     button:hover {
       transform: translateY(-2px);
     }
 
-    .play {
+    .primary {
       background: white;
       color: #080b14;
-      font-size: 21px;
     }
 
     .secondary {
-      background: rgba(255, 255, 255, 0.08);
+      background: rgba(255,255,255,0.08);
       color: white;
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255,255,255,0.12);
     }
 
-    .modes {
-      margin-top: 70px;
+    .explore {
+      margin-top: 75px;
+      text-align: left;
     }
 
-    .modes h2 {
+    .explore h2 {
+      text-align: center;
       font-size: 15px;
       text-transform: uppercase;
       letter-spacing: 2px;
       color: #8d96ad;
+      margin-bottom: 20px;
     }
 
-    .mode-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
-      margin-top: 20px;
+    .category {
+      margin-bottom: 10px;
+      border-radius: 15px;
+      overflow: hidden;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
     }
 
-    .mode {
-      padding: 22px 10px;
-      border-radius: 16px;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      font-weight: 700;
+    .category-header {
+      padding: 20px;
+      font-size: 18px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
     }
 
-    .mode span {
+    .category-content {
+      display: none;
+      padding: 0 20px 20px;
+      color: #c5cada;
+    }
+
+    .category-content div {
+      padding: 10px 0;
+    }
+
+    .category.open .category-content {
       display: block;
-      font-size: 30px;
-      margin-bottom: 8px;
     }
 
-    @media (max-width: 650px) {
-      .mode-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
+    .category.open .arrow {
+      transform: rotate(180deg);
+    }
 
-      .logo {
-        letter-spacing: -4px;
-      }
+    .arrow {
+      transition: 0.2s ease;
+    }
+
+    .footer {
+      margin-top: 60px;
+      color: #69728a;
+      font-size: 14px;
     }
   </style>
 </head>
@@ -139,44 +153,160 @@
       </p>
 
       <div class="buttons">
-        <button class="play">PLAY NOW</button>
-        <button class="secondary">CREATE GAME</button>
-        <button class="secondary">JOIN GAME</button>
+
+        <button class="primary">
+          ⚡ PLAY BIDOFF
+        </button>
+
+        <button class="secondary">
+          ➕ CREATE BIDOFF
+        </button>
+
+        <button class="secondary">
+          🔗 JOIN BIDOFF
+        </button>
+
       </div>
 
-      <section class="modes">
 
-        <h2>Play anything</h2>
+      <section class="explore">
 
-        <div class="mode-grid">
+        <h2>Explore BidOff</h2>
 
-          <div class="mode">
-            <span>🏀</span>
-            NBA
+
+        <div class="category">
+
+          <div class="category-header">
+            🏆 Sports
+            <span class="arrow">⌄</span>
           </div>
 
-          <div class="mode">
-            <span>⚽</span>
-            Football
+          <div class="category-content">
+            <div>🏀 NBA</div>
+            <div>⚽ Football</div>
+            <div>🏈 NFL</div>
+            <div>🏎️ F1</div>
+            <div>🎾 Tennis</div>
+            <div>🥊 Boxing</div>
+            <div>→ View all Sports</div>
           </div>
 
-          <div class="mode">
-            <span>🦸</span>
-            Heroes
+        </div>
+
+
+        <div class="category">
+
+          <div class="category-header">
+            🌎 Life
+            <span class="arrow">⌄</span>
           </div>
 
-          <div class="mode">
-            <span>🌎</span>
-            Perfect Life
+          <div class="category-content">
+            <div>🌴 Perfect Life</div>
+            <div>🏡 Dream Home</div>
+            <div>💼 Dream Career</div>
+            <div>✈️ Dream Holiday</div>
+            <div>💰 Billionaire Life</div>
+            <div>→ View all Life</div>
+          </div>
+
+        </div>
+
+
+        <div class="category">
+
+          <div class="category-header">
+            🎬 Film & TV
+            <span class="arrow">⌄</span>
+          </div>
+
+          <div class="category-content">
+            <div>🎬 Movies</div>
+            <div>📺 TV Shows</div>
+            <div>🎭 Actors</div>
+            <div>🎥 Directors</div>
+            <div>→ View all Film & TV</div>
+          </div>
+
+        </div>
+
+
+        <div class="category">
+
+          <div class="category-header">
+            🎮 Gaming
+            <span class="arrow">⌄</span>
+          </div>
+
+          <div class="category-content">
+            <div>🎮 Video Games</div>
+            <div>🕹️ Consoles</div>
+            <div>👾 Characters</div>
+            <div>→ View all Gaming</div>
+          </div>
+
+        </div>
+
+
+        <div class="category">
+
+          <div class="category-header">
+            🌟 Fiction
+            <span class="arrow">⌄</span>
+          </div>
+
+          <div class="category-content">
+            <div>🦸 Superheroes</div>
+            <div>🧙 Fantasy</div>
+            <div>🍥 Anime</div>
+            <div>→ View all Fiction</div>
+          </div>
+
+        </div>
+
+
+        <div class="category">
+
+          <div class="category-header">
+            🎵 Entertainment
+            <span class="arrow">⌄</span>
+          </div>
+
+          <div class="category-content">
+            <div>🎵 Music</div>
+            <div>🎤 Artists</div>
+            <div>📱 Creators</div>
+            <div>→ View all Entertainment</div>
           </div>
 
         </div>
 
       </section>
 
+
+      <p class="footer">
+        Build your team. Outbid your opponents. Win the battle.
+      </p>
+
     </div>
 
   </main>
+
+  <script>
+
+    const categories = document.querySelectorAll(".category");
+
+    categories.forEach(category => {
+
+      category.querySelector(".category-header").addEventListener("click", () => {
+
+        category.classList.toggle("open");
+
+      });
+
+    });
+
+  </script>
 
 </body>
 </html>
