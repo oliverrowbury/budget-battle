@@ -1,14 +1,73 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Budget Battle</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #111827;
+      color: white;
+      text-align: center;
+    }
+
+    .container {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 80px 20px;
+    }
+
+    h1 {
+      font-size: 52px;
+      margin-bottom: 10px;
+    }
+
+    .tagline {
+      font-size: 20px;
+      color: #9ca3af;
+      margin-bottom: 50px;
+    }
+
+    button {
+      display: block;
+      width: 100%;
+      max-width: 400px;
+      margin: 15px auto;
+      padding: 18px;
+      border: none;
+      border-radius: 12px;
+      font-size: 20px;
+      font-weight: bold;
+      cursor: pointer;
+      background: white;
+      color: #111827;
+    }
+
+    button:hover {
+      transform: scale(1.02);
+    }
+  </style>
 </head>
 
 <body>
-  <h1>💰 Budget Battle</h1>
-  <p>Build the best team with $20.</p>
 
-  <button>CREATE GAME</button>
-  <button>JOIN GAME</button>
+  <div class="container">
+
+    <h1>💰 Budget Battle</h1>
+
+    <p class="tagline">
+      Bid. Build. Battle.
+    </p>
+
+    <button>⚡ PLAY</button>
+    <button>🎮 BROWSE GAMES</button>
+    <button>➕ CREATE GAME</button>
+    <button>🔗 JOIN GAME</button>
+
+  </div>
+
 </body>
 </html>
