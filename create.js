@@ -35,7 +35,6 @@ function updateStartButton() {
 }
 
 updateStartButton();
-
 const preselectedKey = new URLSearchParams(window.location.search).get("category");
 if (preselectedKey) {
   const preselectedButton = document.querySelector(`.category-button[data-target="${preselectedKey}"]`);
