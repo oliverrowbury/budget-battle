@@ -18,9 +18,7 @@ document.querySelector(".secondary").addEventListener("click", () => {
 
 const categoryToCreateKey = {
   "Sports": "sports-games",
-  "Life": "life-games",
   "Film & TV": "film-games",
-  "Gaming": "gaming-games",
   "Music": "entertainment-games",
 };
 
