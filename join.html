@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Join BidOff</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #080b14;
+      color: white;
+    }
+
+    .page {
+      max-width: 500px;
+      margin: auto;
+      padding: 40px 20px 80px;
+    }
+
+    .back {
+      color: #9ca3af;
+      text-decoration: none;
+      font-size: 15px;
+    }
+
+    h1 {
+      font-size: 42px;
+      margin: 45px 0 8px;
+    }
+
+    .subtitle {
+      color: #9ca3af;
+      margin-bottom: 40px;
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #8d96ad;
+      margin-bottom: 12px;
+    }
+
+    input {
+      width: 100%;
+      padding: 19px;
+      border-radius: 15px;
+      background: #151a29;
+      border: 1px solid #242b3d;
+      color: white;
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: 6px;
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: white;
+    }
+
+    input::placeholder {
+      letter-spacing: 2px;
+      color: #4b5468;
+    }
+
+    .join {
+      width: 100%;
+      margin-top: 15px;
+      padding: 19px;
+      border: none;
+      border-radius: 15px;
+      background: white;
+      color: #080b14;
+      font-size: 19px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .join:hover {
+      transform: translateY(-2px);
+    }
+
+    .join:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+    }
+  </style>
+</head>
+
+<body>
+
+  <main class="page">
+
+    <a class="back" href="index.html">← Back</a>
+
+    <h1>Join BidOff</h1>
+
+    <p class="subtitle">
+      Enter the code your opponent shared with you.
+    </p>
+
+    <label for="code">BidOff code</label>
+    <input id="code" type="text" maxlength="6" placeholder="ABC123">
+
+    <button class="join" disabled>
+      JOIN BIDOFF →
+    </button>
+
+  </main>
+
+<script src="join.js"></script>
+</body>
+</html>
