@@ -80,6 +80,9 @@ body::after {
   width: min(420px, 80%);
   height: auto;
   margin: 60px auto 10px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
   object-fit: contain;
 }
 
