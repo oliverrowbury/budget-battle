@@ -75,20 +75,12 @@ body::after {
   margin: 0 auto;
 }
 
-/* Logo */
-
 .logo {
-  position: relative;
-  margin: 70px 0 5px;
-  text-align: center;
-  font-size: clamp(64px, 12vw, 110px);
-  font-weight: 950;
-  letter-spacing: -7px;
-  line-height: 0.95;
-  color: #ffffff;
-  text-shadow:
-    0 0 25px rgba(120, 135, 255, 0.25),
-    0 0 70px rgba(120, 135, 255, 0.12);
+  display: block;
+  width: min(420px, 80%);
+  height: auto;
+  margin: 60px auto 10px;
+  object-fit: contain;
 }
 
 .tagline {
