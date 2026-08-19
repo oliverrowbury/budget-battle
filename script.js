@@ -29,8 +29,10 @@ document.querySelectorAll(".game").forEach((game) => {
       topCategory = topCategory.parentElement.closest(".category");
     }
 
-    const label = topCategory.querySelector(".category-header span").textContent.trim();
-    const name = label.replace(/^\S+\s*/, "");
+    const nameEl = topCategory.querySelector(".category-name");
+    const name = nameEl
+      ? nameEl.textContent.trim()
+      : topCategory.querySelector(".category-header span").textContent.trim().replace(/^\S+\s*/, "");
     const target = categoryToCreateKey[name];
 
     window.location.href = target ? `create.html?category=${target}` : "create.html";
