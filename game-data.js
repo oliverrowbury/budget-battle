@@ -1981,6 +1981,13 @@ const gamePools = {
     "Honey Dijon",
     "Jamie Jones",
     "Loco Dice",
+    "Prospa"
+    "WiztheMic"
+    "Omar+"
+    "SilvaBumpa"
+    "Selker"
+    "The Days"
+    "dentist",
   ],
 
   "Dad Music": [
@@ -2034,7 +2041,10 @@ const gamePools = {
     "Carole King",
     "Jackson Browne",
     "The Band",
-    "Little Feat",
+    "Little Feat"
+    "Beatles"
+    "Red Hot Chilli Peppers"
+    "The Killers",
   ],
 
   "Top Songs — All-Time": [
@@ -2305,7 +2315,15 @@ const gamePools = {
     "Home Office with a View",
     "Electric Supercar",
     "Motorbike Collection",
-    "Annual Round-the-World Cruise",
+    "Annual Round-the-World Cruise"
+    "Free sporting event tickets"
+    "Immortal"
+    "Speak to animals"
+    "Fluent in every language"
+    "Live in haunted house"
+    "200iq"
+    "Earn £100k a month"
+    "Work your dream job"
   ],
 
   "Video Games": [
@@ -2360,6 +2378,14 @@ const gamePools = {
     "Sonic the Hedgehog",
     "Crash Bandicoot",
     "Grand Theft Auto: Vice City",
+    "NBA 2K"
+    "FIFA/EAFC"
+    "Madden"
+    "College football"
+    "Fall guys"
+    "Encharted"
+    "Star Wars Battlefront"
+    "Marvel Lego"
   ],
 
   "Mobile Games": [
@@ -2521,6 +2547,9 @@ const gamePools = {
     "Ostrich",
     "Crocodile",
     "Komodo Dragon",
+    "Dog"
+    "Cat"
+
   ],
 
   "Build a 5-Course Meal": [
@@ -2679,7 +2708,11 @@ const gamePools = {
     "Capital City Skyline",
     "Coastal Fishing Industry",
     "Wine Region",
-    "Tech Startup Scene",
+    "Tech Startup Scene"
+    "Populationof 100"
+    "Size of Vatican City"
+    "Size of Russia"
+    "War-torn"
   ],
 
   "Funniest Squad": [
@@ -2789,59 +2822,7 @@ const gamePools = {
     "Fisherman",
   ],
 
-  "Weirdest Team": [
-    "Nicolas Cage",
-    "Tommy Wiseau",
-    "Charlie Sheen",
-    "Gary Busey",
-    "Björk",
-    "Marilyn Manson",
-    "Lady Gaga",
-    "Grimes",
-    "Flavor Flav",
-    "Ozzy Osbourne",
-    "Dennis Rodman",
-    "Mike Tyson",
-    "Steve-O",
-    "Johnny Knoxville",
-    "Crispin Glover",
-    "Willem Dafoe",
-    "Christopher Walken",
-    "Danny Trejo",
-    "Weird Al Yankovic",
-    "Andy Kaufman",
-    "Rebel Wilson",
-    "Salvador Dalí",
-    "Timothy Leary",
-    "Klaus Kinski",
-    "Verne Troyer",
-    "Vincent Gallo",
-    "Shia LaBeouf",
-    "Andy Warhol",
-    "Elon Musk",
-    "Doc Brown",
-    "Willy Wonka",
-    "The Mad Hatter",
-    "Jack Sparrow",
-    "Beetlejuice",
-    "Edward Scissorhands",
-    "The Joker",
-    "Dr. Emmett Brown",
-    "Rick Sanchez",
-    "Deadpool",
-    "The Cheshire Cat",
-    "Q from James Bond",
-    "Gollum",
-    "Jar Jar Binks",
-    "Cousin Itt",
-    "Uncle Fester",
-    "Pee-wee Herman",
-    "Borat",
-    "Ali G",
-    "Napoleon Dynamite",
-    "Dwight Schrute",
-    "Michael Scott",
-  ],
+ 
 
   "Build a Garage": [
     "Ferrari 488",
@@ -2950,6 +2931,12 @@ const gamePools = {
     "Good Mythical Morning",
     "Dude Perfect",
     "SSSniperWolf",
+    "ChrisMD"
+    "Sidemen"
+    "Beta Squad"
+    "W2S"
+    "Jesser"
+    "Jake Paul"
   ],
 
   "NBA — All-Time": [
