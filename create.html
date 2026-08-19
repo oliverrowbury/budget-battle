@@ -95,6 +95,21 @@
     .start:hover {
       transform: translateY(-2px);
     }
+
+    .start:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .game-options {
+      display: none;
+      margin-top: 14px;
+    }
+
+    .game-options.visible {
+      display: block;
+    }
   </style>
 </head>
 
@@ -119,12 +134,12 @@
 
      <div class="options">
 
-  <button class="option category-button">🏆 Sports</button>
-  <button class="option category-button">🌎 Life</button>
-  <button class="option category-button">🎬 Film & TV</button>
-  <button class="option category-button">🎮 Gaming</button>
-  <button class="option category-button">🌟 Fiction</button>
-  <button class="option category-button">🎵 Entertainment</button>
+  <button class="option category-button" data-target="sports-games">🏆 Sports</button>
+  <button class="option category-button" data-target="life-games">🌎 Life</button>
+  <button class="option category-button" data-target="film-games">🎬 Film & TV</button>
+  <button class="option category-button" data-target="gaming-games">🎮 Gaming</button>
+  <button class="option category-button" data-target="fiction-games">🌟 Fiction</button>
+  <button class="option category-button" data-target="entertainment-games">🎵 Entertainment</button>
 
 </div>
 
@@ -142,6 +157,93 @@
     <button class="option">🏎️ F1</button>
     <button class="option">🎾 Tennis</button>
     <button class="option">🥊 Boxing</button>
+
+  </div>
+
+</div>
+
+<div id="life-games" class="game-options">
+
+  <div class="section-title">
+    Choose your Life BidOff
+  </div>
+
+  <div class="options">
+
+    <button class="option">🌴 Perfect Life</button>
+    <button class="option">🍽️ 5-Course Meal</button>
+    <button class="option">🏚️ Survival Apocalypse</button>
+    <button class="option">🚗 Build a Garage</button>
+    <button class="option">🌍 Build a Country</button>
+
+  </div>
+
+</div>
+
+<div id="film-games" class="game-options">
+
+  <div class="section-title">
+    Choose your Film & TV BidOff
+  </div>
+
+  <div class="options">
+
+    <button class="option">🎭 Best Cast — All-Time</button>
+    <button class="option">🎥 Movies — All-Time</button>
+    <button class="option">🎬 Build a Movie</button>
+    <button class="option">📺 Shows — All-Time</button>
+
+  </div>
+
+</div>
+
+<div id="gaming-games" class="game-options">
+
+  <div class="section-title">
+    Choose your Gaming BidOff
+  </div>
+
+  <div class="options">
+
+    <button class="option">🕹️ Video Games</button>
+    <button class="option">📱 Mobile Games</button>
+    <button class="option">🎮 All-Time Games</button>
+
+  </div>
+
+</div>
+
+<div id="fiction-games" class="game-options">
+
+  <div class="section-title">
+    Choose your Fiction BidOff
+  </div>
+
+  <div class="options">
+
+    <button class="option">⚔️ Star Wars — Squad</button>
+    <button class="option">🦸 Marvel — Squad</button>
+    <button class="option">🦇 DC — Squad</button>
+    <button class="option">⚡ Harry Potter — Squad</button>
+    <button class="option">💍 Lord of the Rings — Squad</button>
+    <button class="option">🦖 Jurassic Park — Squad</button>
+
+  </div>
+
+</div>
+
+<div id="entertainment-games" class="game-options">
+
+  <div class="section-title">
+    Choose your Entertainment BidOff
+  </div>
+
+  <div class="options">
+
+    <button class="option">🎤 Artists — All</button>
+    <button class="option">🎙️ Rappers</button>
+    <button class="option">🏆 Top Songs — All-Time</button>
+    <button class="option">📺 YouTubers</button>
 
   </div>
 
@@ -216,11 +318,12 @@
     </div>
 
 
-    <button class="start">
+    <button class="start" disabled>
       CREATE BIDOFF →
     </button>
 
   </main>
 
+<script src="create.js"></script>
 </body>
 </html>
