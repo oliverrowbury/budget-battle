@@ -111,6 +111,14 @@ function runGame() {
 
   const auctionQueue = shuffle(pool);
 
+  let turnPointer = 0;
+
+  function rotateStart(biddersArr) {
+    let startIdx = biddersArr.findIndex((p) => p.id >= turnPointer);
+    if (startIdx === -1) startIdx = 0;
+    return biddersArr.slice(startIdx).concat(biddersArr.slice(0, startIdx));
+  }
+
   function rosterFull(p) {
     return p.roster.length >= totalSlotsPerPlayer;
   }
@@ -209,12 +217,14 @@ function runGame() {
       return;
     }
     const item = auctionQueue[queueIndex];
-    const bidders = players.filter((p) => eligible(p, item));
+    const eligibleBidders = players.filter((p) => eligible(p, item));
 
-    if (bidders.length === 0) {
+    if (eligibleBidders.length === 0) {
       nextItem(queueIndex + 1);
       return;
     }
+
+    const bidders = rotateStart(eligibleBidders);
 
     renderScoreboard(null);
     renderRosters();
@@ -235,6 +245,7 @@ function runGame() {
     } else {
       logLine(`${item.name} went unsold — nobody bid`);
     }
+    turnPointer = (turnPointer + 1) % numPlayers;
     renderScoreboard(null);
     renderRosters();
     setTimeout(() => nextItem(queueIndex + 1), 250);
@@ -267,11 +278,15 @@ function runGame() {
     }
 
     function step() {
-      if (active.length <= 1) {
-        const winner = active.length === 1 ? active[0] : null;
-        const price = winner ? Math.max(currentBid, 1) : 0;
+      if (active.length === 0) {
         cleanup();
-        resolveItem(item, winner, price, queueIndex);
+        resolveItem(item, null, 0, queueIndex);
+        return;
+      }
+      if (active.length === 1 && currentBid > 0) {
+        const winner = active[0];
+        cleanup();
+        resolveItem(item, winner, currentBid, queueIndex);
         return;
       }
       updateUI();
