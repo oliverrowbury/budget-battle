@@ -164,6 +164,9 @@ startButton.addEventListener("click", () => {
     slots,
   });
 
+  const code = encodeGameCode({ game: selectedGameKey, players, auction, budget, slots });
+  if (code) params.set("code", code);
+
   window.location.href = `play.html?${params.toString()}`;
 });
 
