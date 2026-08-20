@@ -176,6 +176,10 @@
       outline: none;
       border-color: rgba(124, 134, 255, 0.5);
     }
+
+    .hidden {
+      display: none !important;
+    }
   </style>
 </head>
 
@@ -246,16 +250,16 @@
 
       <div class="options">
 
-        <button class="option" data-value="10">$10</button>
+        <button class="option" data-value="15">$15</button>
         <button class="option selected" data-value="20">$20</button>
-        <button class="option" data-value="50">$50</button>
+        <button class="option" data-value="25">$25</button>
 
       </div>
 
     </div>
 
 
-    <div class="section" data-key="slots">
+    <div class="section" data-key="slots" id="slots-section">
 
       <div class="section-title">
         Slots per player
@@ -268,6 +272,16 @@
         <button class="option" data-value="10">10</button>
 
       </div>
+
+    </div>
+
+    <div class="section hidden" id="fixed-slots-info">
+
+      <div class="section-title">
+        Squad requirement
+      </div>
+
+      <p style="color: #f6f5fb; background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 16px 18px; margin: 0;" id="fixed-slots-text"></p>
 
     </div>
 
