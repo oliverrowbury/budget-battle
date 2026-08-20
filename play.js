@@ -308,11 +308,7 @@ function runGame() {
     const bidInput = document.getElementById("bid-input");
     const placeBidBtn = document.getElementById("place-bid-btn");
     const passBtn = document.getElementById("pass-btn");
-
-    function forcedPrice(player) {
-      if (player.budget < 1) return 0;
-      return Math.min(Math.max(currentBid, 1), player.budget);
-    }
+    const skipBtn = document.getElementById("skip-btn");
 
     function canOfferSkip() {
       return active.length > 1 && skipState.available &&
@@ -327,23 +323,27 @@ function runGame() {
         document.getElementById("current-bid-leader").textContent = currentLeader ? `(${currentLeader.name})` : "";
         document.getElementById("turn-prompt").textContent = `${pendingSkip.offeredBy.name} wants to skip this item — ${responder.name}, agree or take it free?`;
         bidInput.classList.add("hidden");
+        passBtn.classList.add("hidden");
+        skipBtn.classList.remove("hidden");
         placeBidBtn.textContent = "Agree to Skip";
-        passBtn.textContent = "Take It (Free)";
+        skipBtn.textContent = "Take It (Free)";
         return;
       }
       bidInput.classList.remove("hidden");
+      passBtn.classList.remove("hidden");
       placeBidBtn.textContent = "Place Bid";
+      passBtn.textContent = "Pass";
       renderScoreboard(active[turn % active.length].id);
       document.getElementById("current-bid-amount").textContent = `$${currentBid}`;
       document.getElementById("current-bid-leader").textContent = currentLeader ? `(${currentLeader.name})` : "";
       const current = active[turn % active.length];
       const offerable = canOfferSkip();
-      document.getElementById("turn-prompt").textContent = `${current.name}'s turn to bid${offerable ? " or offer a skip" : ""}`;
+      document.getElementById("turn-prompt").textContent = `${current.name}'s turn to bid, pass, ${offerable ? "or offer a skip" : "(no skips left)"}`;
       bidInput.value = currentBid + 1;
       bidInput.min = currentBid + 1;
       bidInput.max = current.budget;
-      const price = forcedPrice(current);
-      passBtn.textContent = offerable ? "Offer Skip" : `Take It (${price > 0 ? `$${price}` : "Free"})`;
+      skipBtn.classList.toggle("hidden", !offerable);
+      skipBtn.textContent = "Skip";
     }
 
     function step() {
@@ -372,19 +372,22 @@ function runGame() {
       step();
     }
 
-    function onSecondary() {
+    function onPass() {
       const current = active[turn % active.length];
-      if (canOfferSkip()) {
-        pendingSkip = { offeredBy: current, responderQueue: active.filter((p) => p.id !== current.id) };
-        updateUI();
-      } else {
-        const price = forcedPrice(current);
-        cleanup();
-        resolveItem(item, current, price, queueIndex);
-      }
+      active = active.filter((p) => p.id !== current.id);
+      if (active.length > 0) turn = turn % active.length;
+      step();
+    }
+
+    function onOfferSkip() {
+      if (pendingSkip || !canOfferSkip()) return;
+      const current = active[turn % active.length];
+      pendingSkip = { offeredBy: current, responderQueue: active.filter((p) => p.id !== current.id) };
+      updateUI();
     }
 
     function onAgreeSkip() {
+      if (!pendingSkip) return;
       pendingSkip.responderQueue.shift();
       if (pendingSkip.responderQueue.length === 0) {
         skipState.available = false;
@@ -397,6 +400,7 @@ function runGame() {
     }
 
     function onTakeFree() {
+      if (!pendingSkip) return;
       const responder = pendingSkip.responderQueue[0];
       skipState.available = true;
       skipState.restrictedTo = responder.id;
@@ -404,23 +408,25 @@ function runGame() {
       resolveItem(item, responder, 0, queueIndex);
     }
 
-    function onPrimary() {
+    function onPrimaryClick() {
       if (pendingSkip) onAgreeSkip();
       else onBid();
     }
 
-    function onPassBtn() {
+    function onSkipClick() {
       if (pendingSkip) onTakeFree();
-      else onSecondary();
+      else onOfferSkip();
     }
 
     function cleanup() {
-      placeBidBtn.removeEventListener("click", onPrimary);
-      passBtn.removeEventListener("click", onPassBtn);
+      placeBidBtn.removeEventListener("click", onPrimaryClick);
+      passBtn.removeEventListener("click", onPass);
+      skipBtn.removeEventListener("click", onSkipClick);
     }
 
-    placeBidBtn.addEventListener("click", onPrimary);
-    passBtn.addEventListener("click", onPassBtn);
+    placeBidBtn.addEventListener("click", onPrimaryClick);
+    passBtn.addEventListener("click", onPass);
+    skipBtn.addEventListener("click", onSkipClick);
     step();
   }
 
