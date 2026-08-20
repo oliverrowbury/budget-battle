@@ -74,6 +74,20 @@ function rpFindNextRound(players, queue, fromIndex, totalSlots, turnPointer, auc
   return null;
 }
 
+// Once only one player still has an unfilled squad, there's no one left to bid
+// against them — hand them their remaining needed picks directly instead of
+// making them click through solo "auctions" against nobody.
+function rpAutoCompleteRemaining(players, queue, fromIndex, totalSlots, player, log) {
+  for (let i = fromIndex; i < queue.length; i++) {
+    if (rpRosterFull(player, totalSlots) || player.budget < 1) break;
+    const item = queue[i];
+    if (rpEligible(player, item, totalSlots)) {
+      rpAwardItem(players, player.id, item, 1);
+      log.unshift(`${player.name} auto-won ${item.name} for $1 — squad completed`);
+    }
+  }
+}
+
 function rpAwardItem(players, winnerId, item, price) {
   const winner = players.find((p) => p.id === winnerId);
   winner.budget -= price;
@@ -107,13 +121,22 @@ async function rpResolveAndAdvance(code, room, winnerId, price, logText) {
   if (winnerId != null) rpAwardItem(players, winnerId, room.round.item, price);
 
   const newTurnPointer = (room.turnPointer + 1) % room.numPlayers;
-  const next = rpFindNextRound(players, room.queue, room.round.itemIndex + 1, room.totalSlotsPerPlayer, newTurnPointer, room.auctionType);
-  const log = [logText, ...room.log].slice(0, 40);
+  const totalSlots = room.totalSlotsPerPlayer;
+  const log = [logText, ...room.log];
+  const nextIndex = room.round.itemIndex + 1;
+
+  const notFull = players.filter((p) => !rpRosterFull(p, totalSlots));
+  let next = null;
+  if (notFull.length === 1) {
+    rpAutoCompleteRemaining(players, room.queue, nextIndex, totalSlots, notFull[0], log);
+  } else if (notFull.length > 1) {
+    next = rpFindNextRound(players, room.queue, nextIndex, totalSlots, newTurnPointer, room.auctionType);
+  }
 
   await db.collection("rooms").doc(code).update({
     players,
     turnPointer: newTurnPointer,
-    log,
+    log: log.slice(0, 40),
     status: next ? "playing" : "finished",
     queueIndex: next ? next.queueIndex : room.queue.length,
     round: next ? next.round : null,
@@ -211,13 +234,22 @@ async function rpSubmitBlindBid(code, room, myId, rawAmount) {
     }
 
     const newTurnPointer = (freshRoom.turnPointer + 1) % freshRoom.numPlayers;
-    const next = rpFindNextRound(players, freshRoom.queue, r.itemIndex + 1, freshRoom.totalSlotsPerPlayer, newTurnPointer, freshRoom.auctionType);
-    const log = [logText, ...freshRoom.log].slice(0, 40);
+    const totalSlots = freshRoom.totalSlotsPerPlayer;
+    const nextIndex = r.itemIndex + 1;
+    const log = [logText, ...freshRoom.log];
+
+    const notFull = players.filter((p) => !rpRosterFull(p, totalSlots));
+    let next = null;
+    if (notFull.length === 1) {
+      rpAutoCompleteRemaining(players, freshRoom.queue, nextIndex, totalSlots, notFull[0], log);
+    } else if (notFull.length > 1) {
+      next = rpFindNextRound(players, freshRoom.queue, nextIndex, totalSlots, newTurnPointer, freshRoom.auctionType);
+    }
 
     tx.update(ref, {
       players,
       turnPointer: newTurnPointer,
-      log,
+      log: log.slice(0, 40),
       status: next ? "playing" : "finished",
       queueIndex: next ? next.queueIndex : freshRoom.queue.length,
       round: next ? next.round : null,
