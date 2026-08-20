@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>BidOff — Live Auction</title>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Manrope:wght@400;600;800&display=swap');
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: 'Manrope', Arial, Helvetica, sans-serif;
+      color: #f6f5fb;
+      background:
+        radial-gradient(ellipse 800px 500px at 50% -10%, rgba(124, 134, 255, 0.22), transparent 55%),
+        radial-gradient(ellipse 600px 420px at 100% 10%, rgba(240, 180, 41, 0.14), transparent 55%),
+        radial-gradient(circle at 50% 20%, #150f27, #0a0714 74%);
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.07;
+      mix-blend-mode: overlay;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    .page {
+      position: relative;
+      max-width: 760px;
+      margin: auto;
+      padding: 40px 20px 80px;
+    }
+
+    .back {
+      color: #9a94b8;
+      text-decoration: none;
+      font-size: 15px;
+    }
+
+    h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 32px;
+      margin: 20px 0 4px;
+    }
+
+    .subtitle {
+      color: #9a94b8;
+      margin-bottom: 28px;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      padding: 26px;
+      backdrop-filter: blur(12px);
+      margin-bottom: 20px;
+    }
+
+    .scoreboard {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .player-chip {
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      text-align: center;
+    }
+
+    .player-chip.active {
+      border-color: rgba(240, 180, 41, 0.6);
+      background: rgba(240, 180, 41, 0.1);
+    }
+
+    .player-chip .name {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .player-chip .budget {
+      color: #f0b429;
+      font-weight: 800;
+      font-size: 18px;
+      margin-top: 4px;
+    }
+
+    .player-chip .roster-count {
+      color: #9a94b8;
+      font-size: 12px;
+      margin-top: 2px;
+    }
+
+    .up-for-bid {
+      text-align: center;
+      padding: 10px 0 26px;
+    }
+
+    .up-for-bid .label {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #8d96ad;
+      margin-bottom: 10px;
+    }
+
+    .item-name {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 30px;
+      background: linear-gradient(135deg, #f0b429, #ffd873);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .item-position {
+      color: #9a94b8;
+      margin-top: 6px;
+      font-size: 15px;
+    }
+
+    .bid-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .current-bid {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 22px;
+    }
+
+    .current-bid strong {
+      color: #f0b429;
+    }
+
+    .turn-prompt {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 18px;
+    }
+
+    .bid-controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    input[type="number"] {
+      width: 100px;
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.05);
+      color: #f6f5fb;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 18px;
+      text-align: center;
+    }
+
+    button {
+      font-family: 'Space Grotesk', sans-serif;
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn {
+      padding: 14px 22px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 15px;
+      background: rgba(124, 134, 255, 0.14);
+      color: #f6f5fb;
+      border: 1px solid rgba(124, 134, 255, 0.3);
+      transition: 0.18s ease;
+    }
+
+    .btn:hover { background: rgba(124, 134, 255, 0.22); }
+
+    .btn-gold {
+      background: linear-gradient(135deg, #f0b429, #ffd873);
+      color: #1a1206;
+      border: none;
+    }
+
+    .btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    .pass-screen {
+      text-align: center;
+      padding: 40px 20px;
+    }
+
+    .pass-screen .name {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 26px;
+      margin-bottom: 10px;
+    }
+
+    .pass-screen p {
+      color: #9a94b8;
+      margin-bottom: 24px;
+    }
+
+    .log {
+      max-height: 180px;
+      overflow-y: auto;
+      font-size: 14px;
+      color: #9a94b8;
+    }
+
+    .log div {
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .log strong {
+      color: #f6f5fb;
+    }
+
+    .rosters {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    .roster-card h3 {
+      font-family: 'Space Grotesk', sans-serif;
+      margin: 0 0 4px;
+    }
+
+    .roster-card .spent {
+      color: #f0b429;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .roster-card ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .roster-card li {
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      font-size: 15px;
+    }
+
+    .roster-card li .pos {
+      color: #9a94b8;
+      font-size: 12px;
+      display: block;
+    }
+
+    .hidden { display: none !important; }
+
+    .error-box {
+      text-align: center;
+      padding: 40px 20px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <main class="page">
+    <a class="back" href="create.html">← Back</a>
+    <h1 id="game-title">BidOff</h1>
+    <p class="subtitle" id="game-subtitle"></p>
+
+    <div id="error-view" class="error-box hidden">
+      <p>Something's not right with this BidOff link. Head back and set one up.</p>
+      <a class="btn btn-gold" href="create.html">Create a BidOff</a>
+    </div>
+
+    <div id="game-view" class="hidden">
+      <div class="scoreboard" id="scoreboard"></div>
+
+      <div class="card" id="auction-card">
+        <div class="up-for-bid">
+          <div class="label" id="round-label">Up for bid</div>
+          <div class="item-name" id="item-name"></div>
+          <div class="item-position" id="item-position"></div>
+        </div>
+
+        <div class="bid-area" id="open-bid-area">
+          <div class="current-bid">Current bid: <strong id="current-bid-amount">$0</strong> <span id="current-bid-leader"></span></div>
+          <div class="turn-prompt" id="turn-prompt"></div>
+          <div class="bid-controls">
+            <input type="number" id="bid-input" min="1" step="1">
+            <button class="btn btn-gold" id="place-bid-btn">Place Bid</button>
+            <button class="btn" id="pass-btn">Pass</button>
+          </div>
+        </div>
+
+        <div class="bid-area hidden" id="pass-screen">
+          <div class="pass-screen">
+            <div class="label">Pass the device to</div>
+            <div class="name" id="pass-player-name"></div>
+            <p>Everyone else look away — enter your secret bid.</p>
+            <div class="bid-controls">
+              <input type="number" id="blind-bid-input" min="0" step="1">
+              <button class="btn btn-gold" id="submit-blind-bid-btn">Lock In Bid</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="up-for-bid" style="padding-bottom: 0;">
+          <div class="label">Rosters so far</div>
+        </div>
+        <div class="rosters" id="rosters"></div>
+      </div>
+
+      <div class="card">
+        <div class="up-for-bid" style="padding-bottom: 0;">
+          <div class="label">Auction Log</div>
+        </div>
+        <div class="log" id="log"></div>
+      </div>
+    </div>
+
+    <div id="results-view" class="hidden">
+      <div class="card">
+        <h2 style="font-family:'Space Grotesk',sans-serif; margin-top:0;">🏆 BidOff Complete</h2>
+        <div class="rosters" id="final-rosters"></div>
+      </div>
+      <a class="btn btn-gold" href="create.html" style="display:block; text-align:center; text-decoration:none;">Start Another BidOff</a>
+    </div>
+  </main>
+
+<script src="game-data.js"></script>
+<script src="play.js"></script>
+</body>
+</html>
