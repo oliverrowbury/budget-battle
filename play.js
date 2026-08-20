@@ -20,11 +20,13 @@ if (rawCode && typeof decodeGameCode === "function") {
 }
 
 const errorView = document.getElementById("error-view");
+const lobbyView = document.getElementById("lobby-view");
 const gameView = document.getElementById("game-view");
 const resultsView = document.getElementById("results-view");
 
 function showError() {
   errorView.classList.remove("hidden");
+  lobbyView.classList.add("hidden");
   gameView.classList.add("hidden");
 }
 
@@ -57,7 +59,7 @@ function runGame() {
   document.getElementById("game-title").textContent = gameKey;
   document.getElementById("game-subtitle").textContent =
     `${numPlayers} players · $${startingBudget} budget · ${auctionType === "blind" ? "Blind Bid" : "Open Bid"}`;
-  gameView.classList.remove("hidden");
+  lobbyView.classList.remove("hidden");
 
   if (!gameCode && typeof encodeGameCode === "function") {
     gameCode = encodeGameCode({ game: gameKey, players: numPlayers, auction: auctionType, budget: startingBudget, slots: slotsParam });
@@ -366,5 +368,9 @@ function runGame() {
     prompt();
   }
 
-  nextItem(0);
+  document.getElementById("lobby-start-btn").addEventListener("click", () => {
+    lobbyView.classList.add("hidden");
+    gameView.classList.remove("hidden");
+    nextItem(0);
+  }, { once: true });
 }
