@@ -104,16 +104,41 @@ function rpAwardItem(players, winnerId, item, price) {
 // ---------- state mutations (each performed by whichever device caused it) ----------
 
 async function rpStartGame(code, room) {
-  const queue = rpShuffle(room.pool);
+  // Any seats nobody joined from a separate device become local pass-the-device
+  // seats — the host controls them on their own phone, exactly like the old
+  // single-device mode. deviceId: null marks a seat as unclaimed.
   const players = rpClone(room.players);
+  for (let id = players.length; id < room.numPlayers; id++) {
+    players.push({
+      id,
+      deviceId: null,
+      name: `Player ${id + 1}`,
+      budget: room.budget,
+      roster: [],
+      spent: 0,
+      needs: room.slotRequirement ? { ...room.slotRequirement } : null,
+      capsRemaining: room.caps ? { ...room.caps } : null,
+    });
+  }
+
+  const queue = rpShuffle(room.pool);
   const next = rpFindNextRound(players, queue, 0, room.totalSlotsPerPlayer, 0, room.auctionType);
   await db.collection("rooms").doc(code).update({
+    players,
     status: next ? "playing" : "finished",
     queue,
     queueIndex: next ? next.queueIndex : queue.length,
     turnPointer: 0,
     round: next ? next.round : null,
   });
+}
+
+// Seats a device may act for: its own claimed seat, plus any unclaimed seat
+// if this device is the host (host manually passes their own phone around).
+function rpControlledIds(room, deviceId) {
+  return room.players
+    .filter((p) => p.deviceId === deviceId || (p.deviceId === null && deviceId === room.hostDeviceId))
+    .map((p) => p.id);
 }
 
 async function rpResolveAndAdvance(code, room, winnerId, price, logText) {
@@ -284,7 +309,7 @@ function runRoomGame(code) {
 
   document.getElementById("room-name-field").classList.remove("hidden");
   document.getElementById("room-player-list").classList.remove("hidden");
-  document.getElementById("lobby-copy-hint").textContent = "Share this room code — friends who open it join this exact live game.";
+  document.getElementById("lobby-copy-hint").textContent = "Share this room code so friends can join on their own phone — or just hit Start and pass this device around for anyone who isn't on their own device.";
 
   db.collection("rooms").doc(code).onSnapshot(
     (snap) => {
@@ -377,8 +402,8 @@ function runRoomGame(code) {
 
     if (isHost) {
       startBtn.classList.remove("hidden");
-      startBtn.disabled = !full;
-      startBtn.textContent = full ? "START GAME →" : `WAITING FOR PLAYERS (${room.players.length}/${room.numPlayers})`;
+      startBtn.disabled = false;
+      startBtn.textContent = full ? "START GAME →" : `START GAME → (${room.players.length}/${room.numPlayers} joined — rest pass your device)`;
       waitMsg.classList.add("hidden");
       if (!startBtn.dataset.wired) {
         startBtn.dataset.wired = "1";
@@ -445,6 +470,8 @@ function runRoomGame(code) {
     document.getElementById("item-name").textContent = r.item.name;
     document.getElementById("item-position").textContent = r.item.position || "";
 
+    const myControlled = rpControlledIds(room, deviceId);
+
     if (r.type === "open") {
       document.getElementById("round-label").textContent = "Up for bid — Open Auction";
       document.getElementById("open-bid-area").classList.remove("hidden");
@@ -452,14 +479,17 @@ function runRoomGame(code) {
 
       const currentId = r.activeIds[r.turnIndex];
       const currentPlayer = room.players.find((p) => p.id === currentId);
-      const isMyTurn = myPlayer && currentId === myPlayer.id;
+      const isMyTurn = myControlled.includes(currentId);
+      const isOwnDevice = currentPlayer && currentPlayer.deviceId === deviceId;
 
       document.getElementById("current-bid-amount").textContent = `$${r.currentBid}`;
       const leader = r.currentLeaderId != null ? room.players.find((p) => p.id === r.currentLeaderId) : null;
       document.getElementById("current-bid-leader").textContent = leader ? `(${leader.name})` : "";
-      document.getElementById("turn-prompt").textContent = isMyTurn
-        ? "Your turn to bid or pass"
-        : `Waiting for ${currentPlayer ? currentPlayer.name : "…"} to bid or pass`;
+      document.getElementById("turn-prompt").textContent = !isMyTurn
+        ? `Waiting for ${currentPlayer ? currentPlayer.name : "…"} to bid or pass`
+        : isOwnDevice
+          ? "Your turn to bid or pass"
+          : `${currentPlayer.name}'s turn — pass the device, then bid or pass`;
 
       const bidInput = document.getElementById("bid-input");
       const placeBidBtn = document.getElementById("place-bid-btn");
@@ -481,13 +511,15 @@ function runRoomGame(code) {
           if (placeBidBtn.disabled) return;
           placeBidBtn.disabled = true;
           passBtn.disabled = true;
-          rpSubmitOpenBid(code, latestRoom, myPlayer.id, bidInput.value);
+          const actingId = latestRoom.round.activeIds[latestRoom.round.turnIndex];
+          rpSubmitOpenBid(code, latestRoom, actingId, bidInput.value);
         });
         passBtn.addEventListener("click", () => {
           if (passBtn.disabled) return;
           placeBidBtn.disabled = true;
           passBtn.disabled = true;
-          rpSubmitOpenPass(code, latestRoom, myPlayer.id);
+          const actingId = latestRoom.round.activeIds[latestRoom.round.turnIndex];
+          rpSubmitOpenPass(code, latestRoom, actingId);
         });
       }
     } else {
@@ -495,12 +527,15 @@ function runRoomGame(code) {
       document.getElementById("open-bid-area").classList.add("hidden");
       document.getElementById("pass-screen").classList.remove("hidden");
 
-      const iAmBidder = myPlayer && r.bidderIds.includes(myPlayer.id);
-      const iHaveSubmitted = myPlayer && r.bids[myPlayer.id] !== null && r.bids[myPlayer.id] !== undefined;
+      const myPendingIds = r.bidderIds.filter((id) => myControlled.includes(id) && (r.bids[id] === null || r.bids[id] === undefined));
+      const actingId = myPendingIds.length > 0 ? myPendingIds[0] : null;
+      const actingPlayer = actingId != null ? room.players.find((p) => p.id === actingId) : null;
+      const iAmBidder = actingId != null;
+      const iHaveSubmitted = !iAmBidder;
       const submittedCount = r.bidderIds.filter((id) => r.bids[id] !== null && r.bids[id] !== undefined).length;
 
-      document.getElementById("pass-screen-label").textContent = "Your secret bid";
-      document.getElementById("pass-player-name").textContent = myPlayer ? myPlayer.name : "";
+      document.getElementById("pass-screen-label").textContent = actingPlayer && actingPlayer.deviceId !== deviceId ? "Pass the device to" : "Your secret bid";
+      document.getElementById("pass-player-name").textContent = actingPlayer ? actingPlayer.name : "";
       document.getElementById("pass-screen-hint").textContent = `${submittedCount}/${r.bidderIds.length} players have locked in a bid.`;
 
       const blindControls = document.getElementById("blind-bid-controls");
@@ -513,14 +548,16 @@ function runRoomGame(code) {
         waitMsg.classList.add("hidden");
         if (document.activeElement !== blindInput) {
           blindInput.value = 0;
-          blindInput.max = myPlayer.budget;
+          blindInput.max = actingPlayer.budget;
         }
         submitBtn.disabled = false;
       } else {
         blindControls.classList.add("hidden");
         waitMsg.classList.remove("hidden");
-        waitMsg.textContent = iAmBidder
-          ? "Bid locked in — waiting for everyone else…"
+        const controlledBidders = r.bidderIds.filter((id) => myControlled.includes(id));
+        const haveLockedIn = controlledBidders.length > 0;
+        waitMsg.textContent = haveLockedIn
+          ? "Your bid is locked in — waiting for everyone else…"
           : "Waiting for bidders to lock in their bids…";
       }
 
@@ -528,8 +565,12 @@ function runRoomGame(code) {
         blindListenersBound = true;
         submitBtn.addEventListener("click", () => {
           if (submitBtn.disabled) return;
+          const rr = latestRoom.round;
+          const controlledNow = rpControlledIds(latestRoom, deviceId);
+          const pending = rr.bidderIds.filter((id) => controlledNow.includes(id) && (rr.bids[id] === null || rr.bids[id] === undefined));
+          if (pending.length === 0) return;
           submitBtn.disabled = true;
-          rpSubmitBlindBid(code, latestRoom, myPlayer.id, blindInput.value);
+          rpSubmitBlindBid(code, latestRoom, pending[0], blindInput.value);
         });
       }
     }
