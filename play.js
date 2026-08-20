@@ -330,7 +330,8 @@ function runGame() {
         return;
       }
       bidInput.classList.remove("hidden");
-      passBtn.classList.remove("hidden");
+      const canPass = currentBid > 0;
+      passBtn.classList.toggle("hidden", !canPass);
       placeBidBtn.textContent = "Place Bid";
       passBtn.textContent = "Pass";
       renderScoreboard(active[turn % active.length].id);
@@ -338,7 +339,8 @@ function runGame() {
       document.getElementById("current-bid-leader").textContent = currentLeader ? `(${currentLeader.name})` : "";
       const current = active[turn % active.length];
       const offerable = canOfferSkip();
-      document.getElementById("turn-prompt").textContent = `${current.name}'s turn to bid, pass, ${offerable ? "or offer a skip" : "(no skips left)"}`;
+      const options = [canPass ? "pass" : null, offerable ? "offer a skip" : null].filter(Boolean).join(" or ");
+      document.getElementById("turn-prompt").textContent = `${current.name}'s turn to bid${options ? `, ${options}` : ""}`;
       bidInput.value = currentBid + 1;
       bidInput.min = currentBid + 1;
       bidInput.max = current.budget;
@@ -373,6 +375,7 @@ function runGame() {
     }
 
     function onPass() {
+      if (currentBid <= 0) return;
       const current = active[turn % active.length];
       active = active.filter((p) => p.id !== current.id);
       if (active.length > 0) turn = turn % active.length;
