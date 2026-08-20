@@ -228,6 +228,7 @@ async function rpSubmitOpenPass(code, _staleRoom, myId) {
     const room = snap.data();
     const r = room.round;
     if (!r || r.type !== "open" || r.pendingSkip || r.activeIds[r.turnIndex] !== myId) return;
+    if (r.currentBid <= 0) return; // nothing to decline outbidding yet
 
     const newActiveIds = r.activeIds.filter((id) => id !== myId);
 
@@ -564,6 +565,8 @@ function runRoomGame(code) {
         const isOwnDevice = currentPlayer && currentPlayer.deviceId === deviceId;
 
         const offerable = currentPlayer && rpCanOfferSkip(room, r, currentPlayer.id);
+        const canPass = r.currentBid > 0;
+        const options = [canPass ? "pass" : null, offerable ? "offer a skip" : null].filter(Boolean).join(" or ");
 
         document.getElementById("current-bid-amount").textContent = `$${r.currentBid}`;
         const leader = r.currentLeaderId != null ? room.players.find((p) => p.id === r.currentLeaderId) : null;
@@ -571,16 +574,16 @@ function runRoomGame(code) {
         document.getElementById("turn-prompt").textContent = !isMyTurn
           ? `Waiting for ${currentPlayer ? currentPlayer.name : "…"} to bid`
           : isOwnDevice
-            ? `Your turn to bid, pass, ${offerable ? "or offer a skip" : "(no skips left)"}`
-            : `${currentPlayer.name}'s turn — pass the device, then bid, pass, ${offerable ? "or offer a skip" : "(no skips left)"}`;
+            ? `Your turn to bid${options ? `, ${options}` : ""}`
+            : `${currentPlayer.name}'s turn — pass the device, then bid${options ? `, ${options}` : ""}`;
 
         bidInput.classList.remove("hidden");
-        passBtn.classList.remove("hidden");
         placeBidBtn.textContent = "Place Bid";
         passBtn.textContent = "Pass";
         skipBtn.textContent = "Skip";
         bidInput.disabled = !isMyTurn;
         placeBidBtn.disabled = !isMyTurn;
+        passBtn.classList.toggle("hidden", !canPass);
         passBtn.disabled = !isMyTurn;
         skipBtn.classList.toggle("hidden", !offerable);
         skipBtn.disabled = !isMyTurn;
