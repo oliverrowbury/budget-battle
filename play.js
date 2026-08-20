@@ -315,11 +315,6 @@ function runGame() {
       passBtn.removeEventListener("click", onPass);
     }
 
-    if (active.length === 1) {
-      resolveItem(item, active[0], 1, queueIndex);
-      return;
-    }
-
     placeBidBtn.addEventListener("click", onBid);
     passBtn.addEventListener("click", onPass);
     step();
@@ -330,11 +325,6 @@ function runGame() {
     document.getElementById("open-bid-area").classList.add("hidden");
     document.getElementById("pass-screen").classList.remove("hidden");
     document.getElementById("round-label").textContent = "Up for bid — Blind Auction";
-
-    if (bidders.length === 1) {
-      resolveItem(item, bidders[0], 1, queueIndex);
-      return;
-    }
 
     const bids = [];
     let idx = 0;
