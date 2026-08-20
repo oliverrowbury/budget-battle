@@ -154,7 +154,10 @@ function rpControlledIds(room, deviceId) {
     .map((p) => p.id);
 }
 
-async function rpResolveAndAdvance(code, room, winnerId, price, logText) {
+// Pure computation, no I/O — safe to call with a freshly-read room inside a
+// transaction so every write is based on the actual current server state,
+// never a possibly-stale local snapshot.
+function rpComputeResolveUpdate(room, winnerId, price, logText) {
   const players = rpClone(room.players);
   if (winnerId != null) rpAwardItem(players, winnerId, room.round.item, price);
 
@@ -171,76 +174,84 @@ async function rpResolveAndAdvance(code, room, winnerId, price, logText) {
     next = rpFindNextRound(players, room.queue, nextIndex, totalSlots, newTurnPointer, room.auctionType);
   }
 
-  await db.collection("rooms").doc(code).update({
+  return {
     players,
     turnPointer: newTurnPointer,
     log: log.slice(0, 40),
     status: next ? "playing" : "finished",
     queueIndex: next ? next.queueIndex : room.queue.length,
     round: next ? next.round : null,
+  };
+}
+
+async function rpSubmitOpenBid(code, _staleRoom, myId, rawAmount) {
+  const ref = db.collection("rooms").doc(code);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const room = snap.data();
+    const r = room.round;
+    if (!r || r.type !== "open" || r.activeIds[r.turnIndex] !== myId) return;
+
+    const me = room.players.find((p) => p.id === myId);
+    const val = parseInt(rawAmount, 10);
+    if (!Number.isInteger(val) || val <= r.currentBid || val > me.budget) return;
+
+    const newActiveIds = r.activeIds.filter((id) => {
+      if (id === myId) return true;
+      const p = room.players.find((pp) => pp.id === id);
+      return p.budget >= val + 1;
+    });
+    const newTurnIndex = (newActiveIds.indexOf(myId) + 1) % newActiveIds.length;
+
+    if (newActiveIds.length === 1) {
+      tx.update(ref, rpComputeResolveUpdate(room, myId, val, `${me.name} won ${r.item.name} for $${val}`));
+      return;
+    }
+
+    tx.update(ref, {
+      round: { ...r, activeIds: newActiveIds, currentBid: val, currentLeaderId: myId, turnIndex: newTurnIndex },
+    });
   });
 }
 
-async function rpSubmitOpenBid(code, room, myId, rawAmount) {
-  const r = room.round;
-  if (!r || r.type !== "open") return;
-  if (r.activeIds[r.turnIndex] !== myId) return;
+async function rpSubmitOpenPass(code, _staleRoom, myId) {
+  const ref = db.collection("rooms").doc(code);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const room = snap.data();
+    const r = room.round;
+    if (!r || r.type !== "open" || r.activeIds[r.turnIndex] !== myId) return;
 
-  const me = room.players.find((p) => p.id === myId);
-  const val = parseInt(rawAmount, 10);
-  if (!Number.isInteger(val) || val <= r.currentBid || val > me.budget) return;
+    const me = room.players.find((p) => p.id === myId);
 
-  const newActiveIds = r.activeIds.filter((id) => {
-    if (id === myId) return true;
-    const p = room.players.find((pp) => pp.id === id);
-    return p.budget >= val + 1;
-  });
-  const newTurnIndex = (newActiveIds.indexOf(myId) + 1) % newActiveIds.length;
+    // Out of passes: can't decline anymore — forced to take it now.
+    if (me.passesUsed >= 1) {
+      const price = me.budget < 1 ? 0 : Math.min(Math.max(r.currentBid, 1), me.budget);
+      tx.update(ref, rpComputeResolveUpdate(room, myId, price, `${me.name} took ${r.item.name} for ${price > 0 ? `$${price}` : "free"} (out of passes)`));
+      return;
+    }
 
-  if (newActiveIds.length === 1) {
-    await rpResolveAndAdvance(code, room, myId, val, `${me.name} won ${r.item.name} for $${val}`);
-    return;
-  }
+    const players = rpClone(room.players);
+    players.find((p) => p.id === myId).passesUsed += 1;
+    const roomForWrite = { ...room, players };
 
-  await db.collection("rooms").doc(code).update({
-    round: { ...r, activeIds: newActiveIds, currentBid: val, currentLeaderId: myId, turnIndex: newTurnIndex },
-  });
-}
+    const newActiveIds = r.activeIds.filter((id) => id !== myId);
 
-async function rpSubmitOpenPass(code, room, myId) {
-  const r = room.round;
-  if (!r || r.type !== "open") return;
-  if (r.activeIds[r.turnIndex] !== myId) return;
+    if (newActiveIds.length === 0) {
+      tx.update(ref, rpComputeResolveUpdate(roomForWrite, null, 0, `${r.item.name} went unsold — nobody bid`));
+      return;
+    }
+    if (newActiveIds.length === 1 && r.currentBid > 0) {
+      const winner = players.find((p) => p.id === newActiveIds[0]);
+      tx.update(ref, rpComputeResolveUpdate(roomForWrite, winner.id, r.currentBid, `${winner.name} won ${r.item.name} for $${r.currentBid}`));
+      return;
+    }
 
-  const me = room.players.find((p) => p.id === myId);
-
-  // Out of passes: can't decline anymore — forced to take it now.
-  if (me.passesUsed >= 1) {
-    const price = me.budget < 1 ? 0 : Math.min(Math.max(r.currentBid, 1), me.budget);
-    await rpResolveAndAdvance(code, room, myId, price, `${me.name} took ${r.item.name} for ${price > 0 ? `$${price}` : "free"} (out of passes)`);
-    return;
-  }
-
-  const players = rpClone(room.players);
-  players.find((p) => p.id === myId).passesUsed += 1;
-  const roomForWrite = { ...room, players };
-
-  const newActiveIds = r.activeIds.filter((id) => id !== myId);
-
-  if (newActiveIds.length === 0) {
-    await rpResolveAndAdvance(code, roomForWrite, null, 0, `${r.item.name} went unsold — nobody bid`);
-    return;
-  }
-  if (newActiveIds.length === 1 && r.currentBid > 0) {
-    const winner = players.find((p) => p.id === newActiveIds[0]);
-    await rpResolveAndAdvance(code, roomForWrite, winner.id, r.currentBid, `${winner.name} won ${r.item.name} for $${r.currentBid}`);
-    return;
-  }
-
-  const newTurnIndex = newActiveIds.length > 0 ? r.turnIndex % newActiveIds.length : 0;
-  await db.collection("rooms").doc(code).update({
-    players,
-    round: { ...r, activeIds: newActiveIds, turnIndex: newTurnIndex },
+    const newTurnIndex = newActiveIds.length > 0 ? r.turnIndex % newActiveIds.length : 0;
+    tx.update(ref, {
+      players,
+      round: { ...r, activeIds: newActiveIds, turnIndex: newTurnIndex },
+    });
   });
 }
 
@@ -271,41 +282,15 @@ async function rpSubmitBlindBid(code, room, myId, rawAmount) {
       if (amt > 0 && amt > winnerAmount) { winnerAmount = amt; winnerId = id; }
     });
 
-    const players = rpClone(freshRoom.players);
     const bidLines = r.bidderIds
-      .map((id) => `${players.find((p) => p.id === id).name}: $${newBids[id]}`)
+      .map((id) => `${freshRoom.players.find((p) => p.id === id).name}: $${newBids[id]}`)
       .join(", ");
 
-    let logText;
-    if (winnerId != null) {
-      rpAwardItem(players, winnerId, r.item, winnerAmount);
-      const winner = players.find((p) => p.id === winnerId);
-      logText = `Bids — ${bidLines} · ${winner.name} won ${r.item.name} for $${winnerAmount}`;
-    } else {
-      logText = `Bids — ${bidLines} · ${r.item.name} went unsold`;
-    }
+    const logText = winnerId != null
+      ? `Bids — ${bidLines} · ${freshRoom.players.find((p) => p.id === winnerId).name} won ${r.item.name} for $${winnerAmount}`
+      : `Bids — ${bidLines} · ${r.item.name} went unsold`;
 
-    const newTurnPointer = (freshRoom.turnPointer + 1) % freshRoom.numPlayers;
-    const totalSlots = freshRoom.totalSlotsPerPlayer;
-    const nextIndex = r.itemIndex + 1;
-    const log = [logText, ...freshRoom.log];
-
-    const notFull = players.filter((p) => !rpRosterFull(p, totalSlots));
-    let next = null;
-    if (notFull.length === 1) {
-      rpAutoCompleteRemaining(players, freshRoom.queue, nextIndex, totalSlots, notFull[0], log);
-    } else if (notFull.length > 1) {
-      next = rpFindNextRound(players, freshRoom.queue, nextIndex, totalSlots, newTurnPointer, freshRoom.auctionType);
-    }
-
-    tx.update(ref, {
-      players,
-      turnPointer: newTurnPointer,
-      log: log.slice(0, 40),
-      status: next ? "playing" : "finished",
-      queueIndex: next ? next.queueIndex : freshRoom.queue.length,
-      round: next ? next.round : null,
-    });
+    tx.update(ref, rpComputeResolveUpdate(freshRoom, winnerId, winnerAmount, logText));
   });
 }
 
