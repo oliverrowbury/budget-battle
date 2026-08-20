@@ -349,6 +349,58 @@ async function rpRename(code, myId, newName) {
   });
 }
 
+// ---------- live chat ----------
+
+function rpEscapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  }[c]));
+}
+
+function initChat(code, deviceId) {
+  const toggleBtn = document.getElementById("chat-toggle-btn");
+  const panel = document.getElementById("chat-panel");
+  const closeBtn = document.getElementById("chat-close-btn");
+  const input = document.getElementById("chat-input");
+  const sendBtn = document.getElementById("chat-send-btn");
+
+  toggleBtn.classList.remove("hidden");
+  panel.classList.remove("hidden");
+
+  toggleBtn.addEventListener("click", () => panel.classList.toggle("open"));
+  closeBtn.addEventListener("click", () => panel.classList.remove("open"));
+
+  function send() {
+    const text = input.value.trim().slice(0, 300);
+    if (!text) return;
+    input.value = "";
+    db.collection("rooms").doc(code).get().then((snap) => {
+      const room = snap.data();
+      const me = room.players.find((p) => p.deviceId === deviceId);
+      const name = me ? me.name : "Spectator";
+      db.collection("rooms").doc(code).update({
+        chat: firebase.firestore.FieldValue.arrayUnion({ name, text, ts: Date.now() }),
+      });
+    });
+  }
+
+  sendBtn.addEventListener("click", send);
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") send();
+  });
+}
+
+function renderChat(room) {
+  const el = document.getElementById("chat-messages");
+  if (!el) return;
+  const chat = room.chat || [];
+  const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+  el.innerHTML = chat
+    .map((m) => `<div class="chat-msg"><span class="who">${rpEscapeHtml(m.name)}</span>${rpEscapeHtml(m.text)}</div>`)
+    .join("");
+  if (atBottom) el.scrollTop = el.scrollHeight;
+}
+
 // ---------- rendering ----------
 
 function runRoomGame(code) {
@@ -366,6 +418,8 @@ function runRoomGame(code) {
   document.getElementById("room-name-field").classList.remove("hidden");
   document.getElementById("room-player-list").classList.remove("hidden");
   document.getElementById("lobby-copy-hint").textContent = "Share this room code so friends can join on their own phone — or just hit Start and pass this device around for anyone who isn't on their own device.";
+
+  initChat(code, deviceId);
 
   db.collection("rooms").doc(code).onSnapshot(
     (snap) => {
@@ -394,6 +448,7 @@ function runRoomGame(code) {
   );
 
   function render(room, myPlayer) {
+    renderChat(room);
     document.getElementById("game-title").textContent = room.gameKey;
     document.getElementById("game-subtitle").textContent =
       `${room.numPlayers} players · $${room.budget} budget · ${room.auctionType === "blind" ? "Blind Bid" : "Open Bid"}`;
