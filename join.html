@@ -136,6 +136,91 @@
     .hidden {
       display: none !important;
     }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      color: #6b6484;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin: 34px 0;
+    }
+
+    .divider::before,
+    .divider::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .section-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #8d96ad;
+      margin-bottom: 12px;
+    }
+
+    .options {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .option {
+      padding: 16px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(12px);
+      color: #f6f5fb;
+      cursor: pointer;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      transition: 0.18s ease;
+      text-align: left;
+    }
+
+    .option:hover {
+      background: rgba(124, 134, 255, 0.08);
+      border-color: rgba(124, 134, 255, 0.3);
+    }
+
+    .option.selected {
+      border-color: rgba(124, 134, 255, 0.6);
+      background: rgba(124, 134, 255, 0.14);
+    }
+
+    .sub-category-button {
+      font-size: 13px;
+      padding: 13px;
+    }
+
+    .random-btn {
+      width: 100%;
+      margin-top: 4px;
+      padding: 19px;
+      border: none;
+      border-radius: 15px;
+      background: rgba(124, 134, 255, 0.16);
+      border: 1px solid rgba(124, 134, 255, 0.35);
+      color: #f6f5fb;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 17px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.18s ease;
+    }
+
+    .random-btn:hover {
+      background: rgba(124, 134, 255, 0.26);
+    }
   </style>
 </head>
 
@@ -160,9 +245,19 @@
 
     <p class="error-msg hidden" id="join-error"></p>
 
+    <div class="divider">or</div>
+
+    <div class="section">
+      <div class="section-title">Browse & play now</div>
+      <div class="options" id="browse-categories"></div>
+      <div class="options sub-options hidden" id="browse-subcategories"></div>
+      <button class="random-btn hidden" id="random-btn">🎲 Random Game →</button>
+    </div>
+
   </main>
 
 <script src="game-data.js"></script>
+<script src="categories.js"></script>
 <script src="code.js"></script>
 <script src="join.js"></script>
 </body>
