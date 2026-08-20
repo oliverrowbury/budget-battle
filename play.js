@@ -211,6 +211,17 @@ function runGame() {
     return players.every((p) => rosterFull(p));
   }
 
+  function autoCompleteRemaining(player, fromIndex) {
+    for (let i = fromIndex; i < auctionQueue.length; i++) {
+      if (rosterFull(player) || player.budget < 1) break;
+      const item = auctionQueue[i];
+      if (eligible(player, item)) {
+        awardItem(item, player, 1);
+        logLine(`<strong>${player.name}</strong> auto-won <strong>${item.name}</strong> for $1 — squad completed`);
+      }
+    }
+  }
+
   function nextItem(queueIndex) {
     if (allRostersFull()) {
       endGame();
@@ -220,6 +231,16 @@ function runGame() {
       endGame();
       return;
     }
+
+    const notFull = players.filter((p) => !rosterFull(p));
+    if (notFull.length === 1) {
+      autoCompleteRemaining(notFull[0], queueIndex);
+      renderScoreboard(null);
+      renderRosters();
+      endGame();
+      return;
+    }
+
     const item = auctionQueue[queueIndex];
     const eligibleBidders = players.filter((p) => eligible(p, item));
 
