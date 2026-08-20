@@ -67,6 +67,7 @@ function rpBuildRound(item, itemIndex, eligibleBidders, turnPointer, auctionType
       currentBid: 0,
       currentLeaderId: null,
       turnIndex: 0,
+      pendingSkip: null,
     };
   }
   const bids = {};
@@ -130,7 +131,6 @@ async function rpStartGame(code, room) {
       spent: 0,
       needs: room.slotRequirement ? { ...room.slotRequirement } : null,
       capsRemaining: room.caps ? { ...room.caps } : null,
-      passesUsed: 0,
     });
   }
 
@@ -214,44 +214,68 @@ async function rpSubmitOpenBid(code, _staleRoom, myId, rawAmount) {
   });
 }
 
-async function rpSubmitOpenPass(code, _staleRoom, myId) {
+function rpCanOfferSkip(room, r, myId) {
+  return r.activeIds.length > 1 && room.skipAvailable &&
+    (room.skipRestrictedTo === null || room.skipRestrictedTo === myId);
+}
+
+// The "secondary" button on your turn: offers a skip if the shared skip is
+// available to you, otherwise forces you to take the item (bid or take it).
+async function rpSubmitOpenSecondary(code, _staleRoom, myId) {
   const ref = db.collection("rooms").doc(code);
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     const room = snap.data();
     const r = room.round;
-    if (!r || r.type !== "open" || r.activeIds[r.turnIndex] !== myId) return;
+    if (!r || r.type !== "open" || r.pendingSkip || r.activeIds[r.turnIndex] !== myId) return;
 
     const me = room.players.find((p) => p.id === myId);
 
-    // Out of passes: can't decline anymore — forced to take it now.
-    if (me.passesUsed >= 1) {
-      const price = me.budget < 1 ? 0 : Math.min(Math.max(r.currentBid, 1), me.budget);
-      tx.update(ref, rpComputeResolveUpdate(room, myId, price, `${me.name} took ${r.item.name} for ${price > 0 ? `$${price}` : "free"} (out of passes)`));
+    if (rpCanOfferSkip(room, r, myId)) {
+      tx.update(ref, {
+        round: { ...r, pendingSkip: { offeredBy: myId, responderQueue: r.activeIds.filter((id) => id !== myId) } },
+      });
       return;
     }
 
-    const players = rpClone(room.players);
-    players.find((p) => p.id === myId).passesUsed += 1;
-    const roomForWrite = { ...room, players };
+    const price = me.budget < 1 ? 0 : Math.min(Math.max(r.currentBid, 1), me.budget);
+    tx.update(ref, rpComputeResolveUpdate(room, myId, price, `${me.name} took ${r.item.name} for ${price > 0 ? `$${price}` : "free"}`));
+  });
+}
 
-    const newActiveIds = r.activeIds.filter((id) => id !== myId);
+// Responder agrees to skip. Once every other active bidder has agreed, the
+// item goes unsold and the shared skip is used up for the rest of the game.
+async function rpSubmitAgreeSkip(code, _staleRoom, myId) {
+  const ref = db.collection("rooms").doc(code);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const room = snap.data();
+    const r = room.round;
+    if (!r || r.type !== "open" || !r.pendingSkip || r.pendingSkip.responderQueue[0] !== myId) return;
 
-    if (newActiveIds.length === 0) {
-      tx.update(ref, rpComputeResolveUpdate(roomForWrite, null, 0, `${r.item.name} went unsold — nobody bid`));
+    const newQueue = r.pendingSkip.responderQueue.slice(1);
+    if (newQueue.length === 0) {
+      const update = rpComputeResolveUpdate(room, null, 0, `${r.item.name} skipped by mutual agreement`);
+      tx.update(ref, { ...update, skipAvailable: false, skipRestrictedTo: null });
       return;
     }
-    if (newActiveIds.length === 1 && r.currentBid > 0) {
-      const winner = players.find((p) => p.id === newActiveIds[0]);
-      tx.update(ref, rpComputeResolveUpdate(roomForWrite, winner.id, r.currentBid, `${winner.name} won ${r.item.name} for $${r.currentBid}`));
-      return;
-    }
+    tx.update(ref, { round: { ...r, pendingSkip: { ...r.pendingSkip, responderQueue: newQueue } } });
+  });
+}
 
-    const newTurnIndex = newActiveIds.length > 0 ? r.turnIndex % newActiveIds.length : 0;
-    tx.update(ref, {
-      players,
-      round: { ...r, activeIds: newActiveIds, turnIndex: newTurnIndex },
-    });
+// Responder declines the skip and takes the item free instead. The shared
+// skip isn't used up — it becomes restricted to whoever just took it free.
+async function rpSubmitTakeFree(code, _staleRoom, myId) {
+  const ref = db.collection("rooms").doc(code);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const room = snap.data();
+    const r = room.round;
+    if (!r || r.type !== "open" || !r.pendingSkip || r.pendingSkip.responderQueue[0] !== myId) return;
+
+    const me = room.players.find((p) => p.id === myId);
+    const update = rpComputeResolveUpdate(room, myId, 0, `${me.name} took ${r.item.name} for free`);
+    tx.update(ref, { ...update, skipAvailable: true, skipRestrictedTo: myId });
   });
 }
 
@@ -489,36 +513,58 @@ function runRoomGame(code) {
       document.getElementById("open-bid-area").classList.remove("hidden");
       document.getElementById("pass-screen").classList.add("hidden");
 
-      const currentId = r.activeIds[r.turnIndex];
-      const currentPlayer = room.players.find((p) => p.id === currentId);
-      const isMyTurn = myControlled.includes(currentId);
-      const isOwnDevice = currentPlayer && currentPlayer.deviceId === deviceId;
-
-      const canPass = currentPlayer && currentPlayer.passesUsed < 1;
-      const forcedPrice = currentPlayer && currentPlayer.budget < 1 ? 0 : Math.min(Math.max(r.currentBid, 1), currentPlayer ? currentPlayer.budget : 0);
-
-      document.getElementById("current-bid-amount").textContent = `$${r.currentBid}`;
-      const leader = r.currentLeaderId != null ? room.players.find((p) => p.id === r.currentLeaderId) : null;
-      document.getElementById("current-bid-leader").textContent = leader ? `(${leader.name})` : "";
-      document.getElementById("turn-prompt").textContent = !isMyTurn
-        ? `Waiting for ${currentPlayer ? currentPlayer.name : "…"} to bid or pass`
-        : isOwnDevice
-          ? (canPass ? "Your turn to bid or pass" : "You're out of passes — bid or take it")
-          : `${currentPlayer.name}'s turn — pass the device, then ${canPass ? "bid or pass" : "bid or take it (out of passes)"}`;
-
       const bidInput = document.getElementById("bid-input");
       const placeBidBtn = document.getElementById("place-bid-btn");
       const passBtn = document.getElementById("pass-btn");
 
-      bidInput.disabled = !isMyTurn;
-      placeBidBtn.disabled = !isMyTurn;
-      passBtn.disabled = !isMyTurn;
-      passBtn.textContent = canPass ? "Pass" : `Take It (${forcedPrice > 0 ? `$${forcedPrice}` : "Free"})`;
+      if (r.pendingSkip) {
+        const offerer = room.players.find((p) => p.id === r.pendingSkip.offeredBy);
+        const responderId = r.pendingSkip.responderQueue[0];
+        const responder = room.players.find((p) => p.id === responderId);
+        const isMyTurn = myControlled.includes(responderId);
 
-      if (isMyTurn && document.activeElement !== bidInput) {
-        bidInput.value = r.currentBid + 1;
-        bidInput.min = r.currentBid + 1;
-        bidInput.max = currentPlayer.budget;
+        document.getElementById("current-bid-amount").textContent = `$${r.currentBid}`;
+        const leader = r.currentLeaderId != null ? room.players.find((p) => p.id === r.currentLeaderId) : null;
+        document.getElementById("current-bid-leader").textContent = leader ? `(${leader.name})` : "";
+        document.getElementById("turn-prompt").textContent = isMyTurn
+          ? `${offerer.name} wants to skip this item — agree, or take it free?`
+          : `Waiting for ${responder.name} to agree to skip or take it free…`;
+
+        bidInput.classList.add("hidden");
+        placeBidBtn.textContent = "Agree to Skip";
+        passBtn.textContent = "Take It (Free)";
+        placeBidBtn.disabled = !isMyTurn;
+        passBtn.disabled = !isMyTurn;
+      } else {
+        const currentId = r.activeIds[r.turnIndex];
+        const currentPlayer = room.players.find((p) => p.id === currentId);
+        const isMyTurn = myControlled.includes(currentId);
+        const isOwnDevice = currentPlayer && currentPlayer.deviceId === deviceId;
+
+        const offerable = currentPlayer && rpCanOfferSkip(room, r, currentPlayer.id);
+        const forcedPrice = currentPlayer && currentPlayer.budget < 1 ? 0 : Math.min(Math.max(r.currentBid, 1), currentPlayer ? currentPlayer.budget : 0);
+
+        document.getElementById("current-bid-amount").textContent = `$${r.currentBid}`;
+        const leader = r.currentLeaderId != null ? room.players.find((p) => p.id === r.currentLeaderId) : null;
+        document.getElementById("current-bid-leader").textContent = leader ? `(${leader.name})` : "";
+        document.getElementById("turn-prompt").textContent = !isMyTurn
+          ? `Waiting for ${currentPlayer ? currentPlayer.name : "…"} to bid`
+          : isOwnDevice
+            ? `Your turn to bid${offerable ? " or offer a skip" : ""}`
+            : `${currentPlayer.name}'s turn — pass the device, then bid${offerable ? " or offer a skip" : ""}`;
+
+        bidInput.classList.remove("hidden");
+        placeBidBtn.textContent = "Place Bid";
+        passBtn.textContent = offerable ? "Offer Skip" : `Take It (${forcedPrice > 0 ? `$${forcedPrice}` : "Free"})`;
+        bidInput.disabled = !isMyTurn;
+        placeBidBtn.disabled = !isMyTurn;
+        passBtn.disabled = !isMyTurn;
+
+        if (isMyTurn && document.activeElement !== bidInput) {
+          bidInput.value = r.currentBid + 1;
+          bidInput.min = r.currentBid + 1;
+          bidInput.max = currentPlayer.budget;
+        }
       }
 
       if (!openListenersBound) {
@@ -527,15 +573,23 @@ function runRoomGame(code) {
           if (placeBidBtn.disabled) return;
           placeBidBtn.disabled = true;
           passBtn.disabled = true;
-          const actingId = latestRoom.round.activeIds[latestRoom.round.turnIndex];
-          rpSubmitOpenBid(code, latestRoom, actingId, bidInput.value);
+          const rr = latestRoom.round;
+          if (rr.pendingSkip) {
+            rpSubmitAgreeSkip(code, latestRoom, rr.pendingSkip.responderQueue[0]);
+          } else {
+            rpSubmitOpenBid(code, latestRoom, rr.activeIds[rr.turnIndex], bidInput.value);
+          }
         });
         passBtn.addEventListener("click", () => {
           if (passBtn.disabled) return;
           placeBidBtn.disabled = true;
           passBtn.disabled = true;
-          const actingId = latestRoom.round.activeIds[latestRoom.round.turnIndex];
-          rpSubmitOpenPass(code, latestRoom, actingId);
+          const rr = latestRoom.round;
+          if (rr.pendingSkip) {
+            rpSubmitTakeFree(code, latestRoom, rr.pendingSkip.responderQueue[0]);
+          } else {
+            rpSubmitOpenSecondary(code, latestRoom, rr.activeIds[rr.turnIndex]);
+          }
         });
       }
     } else {

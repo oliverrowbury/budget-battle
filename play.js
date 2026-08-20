@@ -110,13 +110,17 @@ function runGame() {
       spent: 0,
       needs: clone(slotRequirement),
       capsRemaining: clone(caps),
-      passesUsed: 0,
     });
   }
 
   const auctionQueue = shuffle(pool);
 
   let turnPointer = 0;
+
+  // One shared "skip" for the whole auction. If a skip offer is declined
+  // (someone takes the item free instead of agreeing), the skip isn't used
+  // up — it just becomes restricted to whoever took the free item.
+  const skipState = { available: true, restrictedTo: null };
 
   function rotateStart(biddersArr) {
     let startIdx = biddersArr.findIndex((p) => p.id >= turnPointer);
@@ -299,6 +303,7 @@ function runGame() {
     let currentBid = 0;
     let currentLeader = null;
     let turn = 0;
+    let pendingSkip = null; // { offeredBy, responderQueue: [players] }
 
     const bidInput = document.getElementById("bid-input");
     const placeBidBtn = document.getElementById("place-bid-btn");
@@ -309,20 +314,36 @@ function runGame() {
       return Math.min(Math.max(currentBid, 1), player.budget);
     }
 
+    function canOfferSkip() {
+      return active.length > 1 && skipState.available &&
+        (skipState.restrictedTo === null || skipState.restrictedTo === active[turn % active.length].id);
+    }
+
     function updateUI() {
+      if (pendingSkip) {
+        const responder = pendingSkip.responderQueue[0];
+        renderScoreboard(responder.id);
+        document.getElementById("current-bid-amount").textContent = `$${currentBid}`;
+        document.getElementById("current-bid-leader").textContent = currentLeader ? `(${currentLeader.name})` : "";
+        document.getElementById("turn-prompt").textContent = `${pendingSkip.offeredBy.name} wants to skip this item — ${responder.name}, agree or take it free?`;
+        bidInput.classList.add("hidden");
+        placeBidBtn.textContent = "Agree to Skip";
+        passBtn.textContent = "Take It (Free)";
+        return;
+      }
+      bidInput.classList.remove("hidden");
+      placeBidBtn.textContent = "Place Bid";
       renderScoreboard(active[turn % active.length].id);
       document.getElementById("current-bid-amount").textContent = `$${currentBid}`;
       document.getElementById("current-bid-leader").textContent = currentLeader ? `(${currentLeader.name})` : "";
       const current = active[turn % active.length];
-      const canPass = current.passesUsed < 1;
-      document.getElementById("turn-prompt").textContent = canPass
-        ? `${current.name}'s turn to bid or pass`
-        : `${current.name} is out of passes — bid or take it`;
+      const offerable = canOfferSkip();
+      document.getElementById("turn-prompt").textContent = `${current.name}'s turn to bid${offerable ? " or offer a skip" : ""}`;
       bidInput.value = currentBid + 1;
       bidInput.min = currentBid + 1;
       bidInput.max = current.budget;
       const price = forcedPrice(current);
-      passBtn.textContent = canPass ? "Pass" : `Take It (${price > 0 ? `$${price}` : "Free"})`;
+      passBtn.textContent = offerable ? "Offer Skip" : `Take It (${price > 0 ? `$${price}` : "Free"})`;
     }
 
     function step() {
@@ -351,13 +372,11 @@ function runGame() {
       step();
     }
 
-    function onPass() {
+    function onSecondary() {
       const current = active[turn % active.length];
-      if (current.passesUsed < 1) {
-        current.passesUsed++;
-        active = active.filter((p) => p.id !== current.id);
-        if (active.length > 0) turn = turn % active.length;
-        step();
+      if (canOfferSkip()) {
+        pendingSkip = { offeredBy: current, responderQueue: active.filter((p) => p.id !== current.id) };
+        updateUI();
       } else {
         const price = forcedPrice(current);
         cleanup();
@@ -365,13 +384,43 @@ function runGame() {
       }
     }
 
-    function cleanup() {
-      placeBidBtn.removeEventListener("click", onBid);
-      passBtn.removeEventListener("click", onPass);
+    function onAgreeSkip() {
+      pendingSkip.responderQueue.shift();
+      if (pendingSkip.responderQueue.length === 0) {
+        skipState.available = false;
+        skipState.restrictedTo = null;
+        cleanup();
+        resolveItem(item, null, 0, queueIndex);
+      } else {
+        updateUI();
+      }
     }
 
-    placeBidBtn.addEventListener("click", onBid);
-    passBtn.addEventListener("click", onPass);
+    function onTakeFree() {
+      const responder = pendingSkip.responderQueue[0];
+      skipState.available = true;
+      skipState.restrictedTo = responder.id;
+      cleanup();
+      resolveItem(item, responder, 0, queueIndex);
+    }
+
+    function onPrimary() {
+      if (pendingSkip) onAgreeSkip();
+      else onBid();
+    }
+
+    function onPassBtn() {
+      if (pendingSkip) onTakeFree();
+      else onSecondary();
+    }
+
+    function cleanup() {
+      placeBidBtn.removeEventListener("click", onPrimary);
+      passBtn.removeEventListener("click", onPassBtn);
+    }
+
+    placeBidBtn.addEventListener("click", onPrimary);
+    passBtn.addEventListener("click", onPassBtn);
     step();
   }
 
