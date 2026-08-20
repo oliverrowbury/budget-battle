@@ -248,6 +248,14 @@ async function rpSubmitOpenPass(code, _staleRoom, myId) {
 }
 
 // The limited, shared skip: proposes abandoning this item entirely.
+// If everyone else eligible for this item is only excluded because they're
+// flat broke, the sole bidder can hand it to them free instead of being
+// forced to buy every remaining item themselves.
+function rpGiftCandidate(room, r) {
+  if (!r || r.activeIds.length !== 1) return null;
+  return room.players.find((p) => p.budget < 1 && rpEligibleIgnoreBudget(p, r.item, room.totalSlotsPerPlayer)) || null;
+}
+
 async function rpSubmitOfferSkip(code, _staleRoom, myId) {
   const ref = db.collection("rooms").doc(code);
   await db.runTransaction(async (tx) => {
@@ -255,6 +263,14 @@ async function rpSubmitOfferSkip(code, _staleRoom, myId) {
     const room = snap.data();
     const r = room.round;
     if (!r || r.type !== "open" || r.pendingSkip || r.activeIds[r.turnIndex] !== myId) return;
+
+    const me = room.players.find((p) => p.id === myId);
+    const gift = rpGiftCandidate(room, r);
+    if (gift) {
+      tx.update(ref, rpComputeResolveUpdate(room, gift.id, 0, `${me.name} gave ${r.item.name} to ${gift.name} for free`));
+      return;
+    }
+
     if (!rpCanOfferSkip(room, r, myId)) return;
 
     tx.update(ref, {
@@ -620,8 +636,9 @@ function runRoomGame(code) {
         const isOwnDevice = currentPlayer && currentPlayer.deviceId === deviceId;
 
         const offerable = currentPlayer && rpCanOfferSkip(room, r, currentPlayer.id);
+        const gift = rpGiftCandidate(room, r);
         const canPass = r.currentBid > 0;
-        const options = [canPass ? "pass" : null, offerable ? "offer a skip" : null].filter(Boolean).join(" or ");
+        const options = [canPass ? "pass" : null, offerable ? "offer a skip" : null, gift ? `give it to ${gift.name}` : null].filter(Boolean).join(" or ");
 
         document.getElementById("current-bid-amount").textContent = `$${r.currentBid}`;
         const leader = r.currentLeaderId != null ? room.players.find((p) => p.id === r.currentLeaderId) : null;
@@ -635,12 +652,17 @@ function runRoomGame(code) {
         bidInput.classList.remove("hidden");
         placeBidBtn.textContent = "Place Bid";
         passBtn.textContent = "Pass";
-        skipBtn.textContent = "Skip";
         bidInput.disabled = !isMyTurn;
         placeBidBtn.disabled = !isMyTurn;
         passBtn.classList.toggle("hidden", !canPass);
         passBtn.disabled = !isMyTurn;
-        skipBtn.classList.toggle("hidden", !offerable);
+        if (gift) {
+          skipBtn.classList.remove("hidden");
+          skipBtn.textContent = `Give to ${gift.name} (Free)`;
+        } else {
+          skipBtn.classList.toggle("hidden", !offerable);
+          skipBtn.textContent = "Skip";
+        }
         skipBtn.disabled = !isMyTurn;
 
         if (isMyTurn && document.activeElement !== bidInput) {

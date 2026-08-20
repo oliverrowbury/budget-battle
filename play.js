@@ -315,6 +315,14 @@ function runGame() {
         (skipState.restrictedTo === null || skipState.restrictedTo === active[turn % active.length].id);
     }
 
+    // If everyone else eligible for this item is only excluded because
+    // they're flat broke, the sole bidder can hand it to them free instead
+    // of being forced to buy every remaining item themselves.
+    function giftCandidate() {
+      if (active.length !== 1) return null;
+      return players.find((p) => p.budget < 1 && eligibleIgnoreBudget(p, item)) || null;
+    }
+
     function updateUI() {
       if (pendingSkip) {
         const responder = pendingSkip.responderQueue[0];
@@ -339,13 +347,19 @@ function runGame() {
       document.getElementById("current-bid-leader").textContent = currentLeader ? `(${currentLeader.name})` : "";
       const current = active[turn % active.length];
       const offerable = canOfferSkip();
-      const options = [canPass ? "pass" : null, offerable ? "offer a skip" : null].filter(Boolean).join(" or ");
+      const gift = giftCandidate();
+      const options = [canPass ? "pass" : null, offerable ? "offer a skip" : null, gift ? `give it to ${gift.name}` : null].filter(Boolean).join(" or ");
       document.getElementById("turn-prompt").textContent = `${current.name}'s turn to bid${options ? `, ${options}` : ""}`;
       bidInput.value = currentBid + 1;
       bidInput.min = currentBid + 1;
       bidInput.max = current.budget;
-      skipBtn.classList.toggle("hidden", !offerable);
-      skipBtn.textContent = "Skip";
+      if (gift) {
+        skipBtn.classList.remove("hidden");
+        skipBtn.textContent = `Give to ${gift.name} (Free)`;
+      } else {
+        skipBtn.classList.toggle("hidden", !offerable);
+        skipBtn.textContent = "Skip";
+      }
     }
 
     function step() {
@@ -383,7 +397,14 @@ function runGame() {
     }
 
     function onOfferSkip() {
-      if (pendingSkip || !canOfferSkip()) return;
+      if (pendingSkip) return;
+      const gift = giftCandidate();
+      if (gift) {
+        cleanup();
+        resolveItem(item, gift, 0, queueIndex);
+        return;
+      }
+      if (!canOfferSkip()) return;
       const current = active[turn % active.length];
       pendingSkip = { offeredBy: current, responderQueue: active.filter((p) => p.id !== current.id) };
       updateUI();
