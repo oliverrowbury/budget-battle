@@ -139,6 +139,43 @@
     .game-options.visible {
       display: block;
     }
+
+    .sub-options {
+      margin-bottom: 14px;
+    }
+
+    .sub-category-button {
+      font-size: 14px;
+      padding: 14px;
+    }
+
+    select.game-select {
+      width: 100%;
+      padding: 16px 18px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #f6f5fb;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239a94b8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 18px center;
+    }
+
+    select.game-select option {
+      background: #150f27;
+      color: #f6f5fb;
+    }
+
+    select.game-select:focus {
+      outline: none;
+      border-color: rgba(124, 134, 255, 0.5);
+    }
   </style>
 </head>
 
@@ -161,126 +198,14 @@
         Choose a category
       </div>
 
-     <div class="options">
+      <div class="options category-options"></div>
 
-  <button class="option category-button" data-target="sports-games">🏆 Sports</button>
-  <button class="option category-button" data-target="life-games">🌎 Life</button>
-  <button class="option category-button" data-target="film-games">🎬 Film & TV</button>
-  <button class="option category-button" data-target="gaming-games">🎮 Gaming</button>
-  <button class="option category-button" data-target="fiction-games">🌟 Fiction</button>
-  <button class="option category-button" data-target="entertainment-games">🎵 Entertainment</button>
+      <div class="game-panels"></div>
 
-</div>
-
-<div id="sports-games" class="game-options">
-
-  <div class="section-title">
-    Choose your Sports BidOff
-  </div>
-
-  <div class="options">
-
-    <button class="option">🏀 NBA</button>
-    <button class="option">⚽ Football</button>
-    <button class="option">🏈 NFL</button>
-    <button class="option">🏎️ F1</button>
-    <button class="option">🎾 Tennis</button>
-    <button class="option">🥊 Boxing</button>
-
-  </div>
-
-</div>
-
-<div id="life-games" class="game-options">
-
-  <div class="section-title">
-    Choose your Life BidOff
-  </div>
-
-  <div class="options">
-
-    <button class="option">🌴 Perfect Life</button>
-    <button class="option">🍽️ 5-Course Meal</button>
-    <button class="option">🏚️ Survival Apocalypse</button>
-    <button class="option">🚗 Build a Garage</button>
-    <button class="option">🌍 Build a Country</button>
-
-  </div>
-
-</div>
-
-<div id="film-games" class="game-options">
-
-  <div class="section-title">
-    Choose your Film & TV BidOff
-  </div>
-
-  <div class="options">
-
-    <button class="option">🎭 Best Cast — All-Time</button>
-    <button class="option">🎥 Movies — All-Time</button>
-    <button class="option">🎬 Build a Movie</button>
-    <button class="option">📺 Shows — All-Time</button>
-
-  </div>
-
-</div>
-
-<div id="gaming-games" class="game-options">
-
-  <div class="section-title">
-    Choose your Gaming BidOff
-  </div>
-
-  <div class="options">
-
-    <button class="option">🕹️ Video Games</button>
-    <button class="option">📱 Mobile Games</button>
-    <button class="option">🎮 All-Time Games</button>
-
-  </div>
-
-</div>
-
-<div id="fiction-games" class="game-options">
-
-  <div class="section-title">
-    Choose your Fiction BidOff
-  </div>
-
-  <div class="options">
-
-    <button class="option">⚔️ Star Wars — Squad</button>
-    <button class="option">🦸 Marvel — Squad</button>
-    <button class="option">🦇 DC — Squad</button>
-    <button class="option">⚡ Harry Potter — Squad</button>
-    <button class="option">💍 Lord of the Rings — Squad</button>
-    <button class="option">🦖 Jurassic Park — Squad</button>
-
-  </div>
-
-</div>
-
-<div id="entertainment-games" class="game-options">
-
-  <div class="section-title">
-    Choose your Entertainment BidOff
-  </div>
-
-  <div class="options">
-
-    <button class="option">🎤 Artists — All</button>
-    <button class="option">🎙️ Rappers</button>
-    <button class="option">🏆 Top Songs — All-Time</button>
-    <button class="option">📺 YouTubers</button>
-
-  </div>
-
-</div>
     </div>
 
 
-    <div class="section">
+    <div class="section" data-key="players">
 
       <div class="section-title">
         Number of players
@@ -288,16 +213,16 @@
 
       <div class="options">
 
-        <button class="option">2 Players</button>
-        <button class="option">3 Players</button>
-        <button class="option">4 Players</button>
+        <button class="option" data-value="2">2 Players</button>
+        <button class="option" data-value="3">3 Players</button>
+        <button class="option" data-value="4">4 Players</button>
 
       </div>
 
     </div>
 
 
-    <div class="section">
+    <div class="section" data-key="auction">
 
       <div class="section-title">
         Auction type
@@ -305,15 +230,15 @@
 
       <div class="options">
 
-        <button class="option">🔒 Blind Bid</button>
-        <button class="option">⚔️ Open Bid</button>
+        <button class="option" data-value="blind">🔒 Blind Bid</button>
+        <button class="option" data-value="open">⚔️ Open Bid</button>
 
       </div>
 
     </div>
 
 
-    <div class="section">
+    <div class="section" data-key="budget">
 
       <div class="section-title">
         Budget
@@ -321,16 +246,16 @@
 
       <div class="options">
 
-        <button class="option">$10</button>
-        <button class="option selected">$20</button>
-        <button class="option">$50</button>
+        <button class="option" data-value="10">$10</button>
+        <button class="option selected" data-value="20">$20</button>
+        <button class="option" data-value="50">$50</button>
 
       </div>
 
     </div>
 
 
-    <div class="section">
+    <div class="section" data-key="slots">
 
       <div class="section-title">
         Slots per player
@@ -338,9 +263,9 @@
 
       <div class="options">
 
-        <button class="option">3</button>
-        <button class="option selected">5</button>
-        <button class="option">10</button>
+        <button class="option" data-value="3">3</button>
+        <button class="option selected" data-value="5">5</button>
+        <button class="option" data-value="10">10</button>
 
       </div>
 
@@ -353,6 +278,8 @@
 
   </main>
 
+<script src="game-data.js"></script>
+<script src="categories.js"></script>
 <script src="create.js"></script>
 </body>
 </html>
