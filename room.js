@@ -54,6 +54,7 @@ async function createRoom(cfg) {
     status: "lobby",
     skipAvailable: true,
     skipRestrictedTo: null,
+    chat: [],
     players: [
       {
         id: 0,
