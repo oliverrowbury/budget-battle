@@ -1,9 +1,23 @@
 const params = new URLSearchParams(window.location.search);
-const gameKey = params.get("game");
-const numPlayers = parseInt(params.get("players"), 10);
-const auctionType = params.get("auction");
-const startingBudget = parseInt(params.get("budget"), 10);
-const slotsParam = parseInt(params.get("slots"), 10);
+let gameKey = params.get("game");
+let numPlayers = parseInt(params.get("players"), 10);
+let auctionType = params.get("auction");
+let startingBudget = parseInt(params.get("budget"), 10);
+let slotsParam = parseInt(params.get("slots"), 10);
+
+const rawCode = params.get("code");
+let gameCode = null;
+if (rawCode && typeof decodeGameCode === "function") {
+  const decoded = decodeGameCode(rawCode);
+  if (decoded) {
+    gameKey = decoded.game;
+    numPlayers = decoded.players;
+    auctionType = decoded.auction;
+    startingBudget = decoded.budget;
+    slotsParam = decoded.slots;
+    gameCode = rawCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+  }
+}
 
 const errorView = document.getElementById("error-view");
 const gameView = document.getElementById("game-view");
@@ -44,6 +58,29 @@ function runGame() {
   document.getElementById("game-subtitle").textContent =
     `${numPlayers} players · $${startingBudget} budget · ${auctionType === "blind" ? "Blind Bid" : "Open Bid"}`;
   gameView.classList.remove("hidden");
+
+  if (!gameCode && typeof encodeGameCode === "function") {
+    gameCode = encodeGameCode({ game: gameKey, players: numPlayers, auction: auctionType, budget: startingBudget, slots: slotsParam });
+  }
+  if (gameCode) {
+    const badge = document.getElementById("code-badge");
+    document.getElementById("code-value").textContent = gameCode;
+    badge.classList.remove("hidden");
+    document.getElementById("copy-code-btn").addEventListener("click", () => {
+      const link = `${window.location.href.split("?")[0]}?code=${gameCode}`;
+      const btn = document.getElementById("copy-code-btn");
+      const done = () => {
+        const original = "Copy invite link";
+        btn.textContent = "Copied!";
+        setTimeout(() => { btn.textContent = original; }, 1500);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(link).then(done).catch(done);
+      } else {
+        done();
+      }
+    });
+  }
 
   const rawPool = gamePools[gameKey];
   const isPositional = typeof rawPool[0] === "object";
