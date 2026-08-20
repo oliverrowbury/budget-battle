@@ -329,13 +329,31 @@
       <a class="btn btn-gold" href="create.html">Create a BidOff</a>
     </div>
 
-    <div id="game-view" class="hidden">
-      <div class="code-badge hidden" id="code-badge">
-        <span class="code-label">Game code</span>
-        <span class="code-value" id="code-value"></span>
-        <button class="btn" id="copy-code-btn">Copy invite link</button>
-      </div>
+    <div id="lobby-view" class="hidden">
+      <div class="card" style="text-align: center;">
+        <div class="up-for-bid" style="padding-bottom: 6px;">
+          <div class="label">Your BidOff is ready</div>
+        </div>
 
+        <div class="code-badge hidden" id="code-badge" style="justify-content: center;">
+          <span class="code-label">Game code</span>
+          <span class="code-value" id="code-value"></span>
+        </div>
+
+        <button class="btn" id="copy-code-btn" style="margin-top: 12px;">Copy invite link</button>
+
+        <p style="color: #9a94b8; font-size: 14px; margin: 22px 0 4px; line-height: 1.5;">
+          Share this code so friends can start the same game on their own device.<br>
+          Everyone playing together on this device? Just hit start.
+        </p>
+
+        <button class="btn btn-gold" id="lobby-start-btn" style="width: 100%; margin-top: 16px; padding: 19px; font-size: 18px;">
+          START GAME →
+        </button>
+      </div>
+    </div>
+
+    <div id="game-view" class="hidden">
       <div class="scoreboard" id="scoreboard"></div>
 
       <div class="card" id="auction-card">
