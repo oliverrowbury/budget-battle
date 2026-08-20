@@ -62,6 +62,7 @@ async function createRoom(cfg) {
         spent: 0,
         needs: slotRequirement ? { ...slotRequirement } : null,
         capsRemaining: caps ? { ...caps } : null,
+        passesUsed: 0,
       },
     ],
     queue: null,
@@ -101,6 +102,7 @@ async function joinRoom(rawCode) {
       spent: 0,
       needs: room.slotRequirement ? { ...room.slotRequirement } : null,
       capsRemaining: room.caps ? { ...room.caps } : null,
+      passesUsed: 0,
     };
     tx.update(ref, { players: [...room.players, newPlayer] });
   });

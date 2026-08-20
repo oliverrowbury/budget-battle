@@ -39,6 +39,17 @@ function rpEligible(p, item, totalSlots) {
   return true;
 }
 
+function rpEligibleIgnoreBudget(p, item, totalSlots) {
+  if (rpRosterFull(p, totalSlots)) return false;
+  if (item.position && p.needs) {
+    if (!(item.position in p.needs) || p.needs[item.position] <= 0) return false;
+  }
+  if (item.position && p.capsRemaining && item.position in p.capsRemaining) {
+    if (p.capsRemaining[item.position] <= 0) return false;
+  }
+  return true;
+}
+
 function rpRotateStart(biddersArr, turnPointer) {
   let startIdx = biddersArr.findIndex((p) => p.id >= turnPointer);
   if (startIdx === -1) startIdx = 0;
@@ -79,11 +90,12 @@ function rpFindNextRound(players, queue, fromIndex, totalSlots, turnPointer, auc
 // making them click through solo "auctions" against nobody.
 function rpAutoCompleteRemaining(players, queue, fromIndex, totalSlots, player, log) {
   for (let i = fromIndex; i < queue.length; i++) {
-    if (rpRosterFull(player, totalSlots) || player.budget < 1) break;
+    if (rpRosterFull(player, totalSlots)) break;
     const item = queue[i];
-    if (rpEligible(player, item, totalSlots)) {
-      rpAwardItem(players, player.id, item, 1);
-      log.unshift(`${player.name} auto-won ${item.name} for $1 — squad completed`);
+    if (rpEligibleIgnoreBudget(player, item, totalSlots)) {
+      const price = player.budget >= 1 ? 1 : 0;
+      rpAwardItem(players, player.id, item, price);
+      log.unshift(`${player.name} auto-won ${item.name} for ${price > 0 ? `$${price}` : "free"} — squad completed`);
     }
   }
 }
@@ -118,6 +130,7 @@ async function rpStartGame(code, room) {
       spent: 0,
       needs: room.slotRequirement ? { ...room.slotRequirement } : null,
       capsRemaining: room.caps ? { ...room.caps } : null,
+      passesUsed: 0,
     });
   }
 
@@ -199,20 +212,34 @@ async function rpSubmitOpenPass(code, room, myId) {
   if (!r || r.type !== "open") return;
   if (r.activeIds[r.turnIndex] !== myId) return;
 
+  const me = room.players.find((p) => p.id === myId);
+
+  // Out of passes: can't decline anymore — forced to take it now.
+  if (me.passesUsed >= 1) {
+    const price = me.budget < 1 ? 0 : Math.min(Math.max(r.currentBid, 1), me.budget);
+    await rpResolveAndAdvance(code, room, myId, price, `${me.name} took ${r.item.name} for ${price > 0 ? `$${price}` : "free"} (out of passes)`);
+    return;
+  }
+
+  const players = rpClone(room.players);
+  players.find((p) => p.id === myId).passesUsed += 1;
+  const roomForWrite = { ...room, players };
+
   const newActiveIds = r.activeIds.filter((id) => id !== myId);
 
   if (newActiveIds.length === 0) {
-    await rpResolveAndAdvance(code, room, null, 0, `${r.item.name} went unsold — nobody bid`);
+    await rpResolveAndAdvance(code, roomForWrite, null, 0, `${r.item.name} went unsold — nobody bid`);
     return;
   }
   if (newActiveIds.length === 1 && r.currentBid > 0) {
-    const winner = room.players.find((p) => p.id === newActiveIds[0]);
-    await rpResolveAndAdvance(code, room, winner.id, r.currentBid, `${winner.name} won ${r.item.name} for $${r.currentBid}`);
+    const winner = players.find((p) => p.id === newActiveIds[0]);
+    await rpResolveAndAdvance(code, roomForWrite, winner.id, r.currentBid, `${winner.name} won ${r.item.name} for $${r.currentBid}`);
     return;
   }
 
   const newTurnIndex = newActiveIds.length > 0 ? r.turnIndex % newActiveIds.length : 0;
   await db.collection("rooms").doc(code).update({
+    players,
     round: { ...r, activeIds: newActiveIds, turnIndex: newTurnIndex },
   });
 }
@@ -482,14 +509,17 @@ function runRoomGame(code) {
       const isMyTurn = myControlled.includes(currentId);
       const isOwnDevice = currentPlayer && currentPlayer.deviceId === deviceId;
 
+      const canPass = currentPlayer && currentPlayer.passesUsed < 1;
+      const forcedPrice = currentPlayer && currentPlayer.budget < 1 ? 0 : Math.min(Math.max(r.currentBid, 1), currentPlayer ? currentPlayer.budget : 0);
+
       document.getElementById("current-bid-amount").textContent = `$${r.currentBid}`;
       const leader = r.currentLeaderId != null ? room.players.find((p) => p.id === r.currentLeaderId) : null;
       document.getElementById("current-bid-leader").textContent = leader ? `(${leader.name})` : "";
       document.getElementById("turn-prompt").textContent = !isMyTurn
         ? `Waiting for ${currentPlayer ? currentPlayer.name : "…"} to bid or pass`
         : isOwnDevice
-          ? "Your turn to bid or pass"
-          : `${currentPlayer.name}'s turn — pass the device, then bid or pass`;
+          ? (canPass ? "Your turn to bid or pass" : "You're out of passes — bid or take it")
+          : `${currentPlayer.name}'s turn — pass the device, then ${canPass ? "bid or pass" : "bid or take it (out of passes)"}`;
 
       const bidInput = document.getElementById("bid-input");
       const placeBidBtn = document.getElementById("place-bid-btn");
@@ -498,6 +528,7 @@ function runRoomGame(code) {
       bidInput.disabled = !isMyTurn;
       placeBidBtn.disabled = !isMyTurn;
       passBtn.disabled = !isMyTurn;
+      passBtn.textContent = canPass ? "Pass" : `Take It (${forcedPrice > 0 ? `$${forcedPrice}` : "Free"})`;
 
       if (isMyTurn && document.activeElement !== bidInput) {
         bidInput.value = r.currentBid + 1;

@@ -110,6 +110,7 @@ function runGame() {
       spent: 0,
       needs: clone(slotRequirement),
       capsRemaining: clone(caps),
+      passesUsed: 0,
     });
   }
 
@@ -211,13 +212,25 @@ function runGame() {
     return players.every((p) => rosterFull(p));
   }
 
+  function eligibleIgnoreBudget(p, item) {
+    if (rosterFull(p)) return false;
+    if (item.position && p.needs) {
+      if (!(item.position in p.needs) || p.needs[item.position] <= 0) return false;
+    }
+    if (item.position && p.capsRemaining && item.position in p.capsRemaining) {
+      if (p.capsRemaining[item.position] <= 0) return false;
+    }
+    return true;
+  }
+
   function autoCompleteRemaining(player, fromIndex) {
     for (let i = fromIndex; i < auctionQueue.length; i++) {
-      if (rosterFull(player) || player.budget < 1) break;
+      if (rosterFull(player)) break;
       const item = auctionQueue[i];
-      if (eligible(player, item)) {
-        awardItem(item, player, 1);
-        logLine(`<strong>${player.name}</strong> auto-won <strong>${item.name}</strong> for $1 — squad completed`);
+      if (eligibleIgnoreBudget(player, item)) {
+        const price = player.budget >= 1 ? 1 : 0;
+        awardItem(item, player, price);
+        logLine(`<strong>${player.name}</strong> auto-won <strong>${item.name}</strong> for ${price > 0 ? `$${price}` : "free"} — squad completed`);
       }
     }
   }
@@ -266,7 +279,7 @@ function runGame() {
   function resolveItem(item, winner, price, queueIndex) {
     if (winner) {
       awardItem(item, winner, price);
-      logLine(`<strong>${winner.name}</strong> won <strong>${item.name}</strong> for $${price}`);
+      logLine(`<strong>${winner.name}</strong> won <strong>${item.name}</strong> for ${price > 0 ? `$${price}` : "free"}`);
     } else {
       logLine(`${item.name} went unsold — nobody bid`);
     }
@@ -291,15 +304,25 @@ function runGame() {
     const placeBidBtn = document.getElementById("place-bid-btn");
     const passBtn = document.getElementById("pass-btn");
 
+    function forcedPrice(player) {
+      if (player.budget < 1) return 0;
+      return Math.min(Math.max(currentBid, 1), player.budget);
+    }
+
     function updateUI() {
       renderScoreboard(active[turn % active.length].id);
       document.getElementById("current-bid-amount").textContent = `$${currentBid}`;
       document.getElementById("current-bid-leader").textContent = currentLeader ? `(${currentLeader.name})` : "";
       const current = active[turn % active.length];
-      document.getElementById("turn-prompt").textContent = `${current.name}'s turn to bid or pass`;
+      const canPass = current.passesUsed < 1;
+      document.getElementById("turn-prompt").textContent = canPass
+        ? `${current.name}'s turn to bid or pass`
+        : `${current.name} is out of passes — bid or take it`;
       bidInput.value = currentBid + 1;
       bidInput.min = currentBid + 1;
       bidInput.max = current.budget;
+      const price = forcedPrice(current);
+      passBtn.textContent = canPass ? "Pass" : `Take It (${price > 0 ? `$${price}` : "Free"})`;
     }
 
     function step() {
@@ -330,9 +353,16 @@ function runGame() {
 
     function onPass() {
       const current = active[turn % active.length];
-      active = active.filter((p) => p.id !== current.id);
-      if (active.length > 0) turn = turn % active.length;
-      step();
+      if (current.passesUsed < 1) {
+        current.passesUsed++;
+        active = active.filter((p) => p.id !== current.id);
+        if (active.length > 0) turn = turn % active.length;
+        step();
+      } else {
+        const price = forcedPrice(current);
+        cleanup();
+        resolveItem(item, current, price, queueIndex);
+      }
     }
 
     function cleanup() {
