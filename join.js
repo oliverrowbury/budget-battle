@@ -8,16 +8,28 @@ codeInput.addEventListener("input", () => {
   joinButton.disabled = codeInput.value.trim().length < 4;
 });
 
-joinButton.addEventListener("click", () => {
-  const decoded = decodeGameCode(codeInput.value);
-  if (!decoded) {
-    errorEl.textContent = "That code doesn't look right — double check it and try again.";
-    errorEl.classList.remove("hidden");
-    return;
-  }
+joinButton.addEventListener("click", async () => {
+  if (joinButton.disabled) return;
+  const code = codeInput.value.trim().toUpperCase();
 
-  const params = new URLSearchParams({ code: codeInput.value.trim().toUpperCase() });
-  window.location.href = `play.html?${params.toString()}`;
+  joinButton.disabled = true;
+  joinButton.textContent = "JOINING…";
+  errorEl.classList.add("hidden");
+
+  try {
+    await joinRoom(code);
+    window.location.href = `play.html?room=${code}`;
+  } catch (e) {
+    joinButton.disabled = false;
+    joinButton.textContent = "JOIN BIDOFF →";
+    const messages = {
+      NOT_FOUND: "No game found with that code — double check it and try again.",
+      FULL: "That game's already full.",
+      ALREADY_STARTED: "That game has already started.",
+    };
+    errorEl.textContent = messages[e.message] || "Couldn't join — check your connection and try again.";
+    errorEl.classList.remove("hidden");
+  }
 });
 
 // ---------- Browse & play a random game ----------

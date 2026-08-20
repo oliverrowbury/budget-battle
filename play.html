@@ -342,10 +342,19 @@
 
         <button class="btn" id="copy-code-btn" style="margin-top: 12px;">Copy invite link</button>
 
-        <p style="color: #9a94b8; font-size: 14px; margin: 22px 0 4px; line-height: 1.5;">
+        <p id="lobby-copy-hint" style="color: #9a94b8; font-size: 14px; margin: 22px 0 4px; line-height: 1.5;">
           Share this code so friends can start the same game on their own device.<br>
           Everyone playing together on this device? Just hit start.
         </p>
+
+        <div id="room-name-field" class="hidden" style="margin: 20px 0;">
+          <label for="room-name-input" style="display:block; font-size:12px; text-transform:uppercase; letter-spacing:1.5px; color:#8d96ad; margin-bottom:8px;">Your name</label>
+          <input type="text" id="room-name-input" maxlength="20" style="width:100%; padding:14px; border-radius:12px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.05); color:#f6f5fb; font-family:'Space Grotesk',sans-serif; font-size:16px; text-align:center;">
+        </div>
+
+        <div id="room-player-list" class="hidden" style="margin: 18px 0; text-align: left;"></div>
+
+        <p id="room-wait-msg" class="hidden" style="color: #9a94b8; font-size: 14px; margin: 10px 0;"></p>
 
         <button class="btn btn-gold" id="lobby-start-btn" style="width: 100%; margin-top: 16px; padding: 19px; font-size: 18px;">
           START GAME →
@@ -375,13 +384,14 @@
 
         <div class="bid-area hidden" id="pass-screen">
           <div class="pass-screen">
-            <div class="label">Pass the device to</div>
+            <div class="label" id="pass-screen-label">Pass the device to</div>
             <div class="name" id="pass-player-name"></div>
-            <p>Everyone else look away — enter your secret bid.</p>
-            <div class="bid-controls">
+            <p id="pass-screen-hint">Everyone else look away — enter your secret bid.</p>
+            <div class="bid-controls" id="blind-bid-controls">
               <input type="number" id="blind-bid-input" min="0" step="1">
               <button class="btn btn-gold" id="submit-blind-bid-btn">Lock In Bid</button>
             </div>
+            <p class="hidden" id="blind-wait-msg" style="color:#9a94b8;">Waiting for everyone else to lock in their bids…</p>
           </div>
         </div>
       </div>
@@ -410,8 +420,13 @@
     </div>
   </main>
 
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore-compat.js"></script>
+<script src="firebase-init.js"></script>
 <script src="game-data.js"></script>
 <script src="code.js"></script>
+<script src="room.js"></script>
+<script src="room-play.js"></script>
 <script src="play.js"></script>
 </body>
 </html>
