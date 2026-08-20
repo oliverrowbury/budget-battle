@@ -99,6 +99,7 @@ function selectCategory(catName) {
     selectedGameKey = select.value;
   }
 
+  updateSlotsVisibility();
   updateStartButton();
 }
 
@@ -120,12 +121,33 @@ function selectSubcategory(catName, subName) {
   select.selectedIndex = 0;
   selectedGameKey = select.value;
 
+  updateSlotsVisibility();
   updateStartButton();
 }
 
 function selectGame(key) {
   selectedGameKey = key;
+  updateSlotsVisibility();
   updateStartButton();
+}
+
+function updateSlotsVisibility() {
+  const slotsSection = document.getElementById("slots-section");
+  const fixedInfo = document.getElementById("fixed-slots-info");
+  const fixedText = document.getElementById("fixed-slots-text");
+
+  const fixed = selectedGameKey && typeof gameSlots !== "undefined" ? gameSlots[selectedGameKey] : null;
+
+  if (fixed) {
+    slotsSection.classList.add("hidden");
+    fixedInfo.classList.remove("hidden");
+    const total = Object.values(fixed).reduce((a, b) => a + b, 0);
+    const parts = Object.entries(fixed).map(([pos, count]) => `${count} ${pos}${count > 1 ? "s" : ""}`);
+    fixedText.textContent = `This game has fixed squad positions — ${parts.join(", ")} (${total} total). The slots setting below doesn't apply.`;
+  } else {
+    slotsSection.classList.remove("hidden");
+    fixedInfo.classList.add("hidden");
+  }
 }
 
 document.querySelectorAll(".section .options .option").forEach((button) => {
@@ -142,7 +164,10 @@ function updateStartButton() {
   const playersSelected = document.querySelector('.section[data-key="players"] .option.selected');
   const auctionSelected = document.querySelector('.section[data-key="auction"] .option.selected');
   const budgetSelected = document.querySelector('.section[data-key="budget"] .option.selected');
-  const slotsSelected = document.querySelector('.section[data-key="slots"] .option.selected');
+
+  const slotsSection = document.getElementById("slots-section");
+  const slotsFixed = slotsSection.classList.contains("hidden");
+  const slotsSelected = slotsFixed || document.querySelector('.section[data-key="slots"] .option.selected');
 
   const allSelected = selectedCategory && selectedGameKey && playersSelected && auctionSelected && budgetSelected && slotsSelected;
   startButton.disabled = !allSelected;

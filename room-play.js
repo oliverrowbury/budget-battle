@@ -24,7 +24,7 @@ function rpRosterFull(p, totalSlots) {
 }
 
 function rpAllRostersFull(players, totalSlots) {
-  return players.every((p) => rpRosterFull(p, totalSlots) || p.budget < 1);
+  return players.every((p) => rpRosterFull(p, totalSlots));
 }
 
 function rpEligible(p, item, totalSlots) {

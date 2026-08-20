@@ -208,7 +208,7 @@ function runGame() {
   }
 
   function allRostersFull() {
-    return players.every((p) => rosterFull(p) || p.budget < 1);
+    return players.every((p) => rosterFull(p));
   }
 
   function nextItem(queueIndex) {
