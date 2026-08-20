@@ -148,26 +148,25 @@ function updateStartButton() {
   startButton.disabled = !allSelected;
 }
 
-startButton.addEventListener("click", () => {
+startButton.addEventListener("click", async () => {
   if (startButton.disabled) return;
 
-  const players = document.querySelector('.section[data-key="players"] .option.selected').dataset.value;
+  const players = parseInt(document.querySelector('.section[data-key="players"] .option.selected').dataset.value, 10);
   const auction = document.querySelector('.section[data-key="auction"] .option.selected').dataset.value;
-  const budget = document.querySelector('.section[data-key="budget"] .option.selected').dataset.value;
-  const slots = document.querySelector('.section[data-key="slots"] .option.selected').dataset.value;
+  const budget = parseInt(document.querySelector('.section[data-key="budget"] .option.selected').dataset.value, 10);
+  const slots = parseInt(document.querySelector('.section[data-key="slots"] .option.selected').dataset.value, 10);
 
-  const params = new URLSearchParams({
-    game: selectedGameKey,
-    players,
-    auction,
-    budget,
-    slots,
-  });
+  startButton.disabled = true;
+  startButton.textContent = "CREATING…";
 
-  const code = encodeGameCode({ game: selectedGameKey, players, auction, budget, slots });
-  if (code) params.set("code", code);
-
-  window.location.href = `play.html?${params.toString()}`;
+  try {
+    const roomCode = await createRoom({ game: selectedGameKey, players, auction, budget, slots });
+    window.location.href = `play.html?room=${roomCode}`;
+  } catch (e) {
+    startButton.disabled = false;
+    startButton.textContent = "CREATE BIDOFF →";
+    alert("Couldn't create the game — check your connection and try again.");
+  }
 });
 
 buildCategoryButtons();

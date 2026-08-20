@@ -1,4 +1,6 @@
 const params = new URLSearchParams(window.location.search);
+const roomCode = params.get("room");
+
 let gameKey = params.get("game");
 let numPlayers = parseInt(params.get("players"), 10);
 let auctionType = params.get("auction");
@@ -30,7 +32,9 @@ function showError() {
   gameView.classList.add("hidden");
 }
 
-if (
+if (roomCode) {
+  runRoomGame(roomCode.trim().toUpperCase());
+} else if (
   !gameKey || typeof gamePools === "undefined" || !gamePools[gameKey] ||
   !Number.isInteger(numPlayers) || numPlayers < 2 || numPlayers > 8 ||
   (auctionType !== "blind" && auctionType !== "open") ||

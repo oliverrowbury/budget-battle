@@ -233,11 +233,11 @@
     <h1>Join BidOff</h1>
 
     <p class="subtitle">
-      Enter the code your opponent shared with you.
+      Enter the room code your friend shared with you to join their live game.
     </p>
 
-    <label for="code">BidOff code</label>
-    <input id="code" type="text" maxlength="7" placeholder="3FO420A">
+    <label for="code">Room code</label>
+    <input id="code" type="text" maxlength="5" placeholder="7HK4M">
 
     <button class="join" disabled>
       JOIN BIDOFF →
@@ -248,7 +248,8 @@
     <div class="divider">or</div>
 
     <div class="section">
-      <div class="section-title">Browse & play now</div>
+      <div class="section-title">Browse & play solo</div>
+      <p style="color:#6b6484; font-size:13px; margin-top:-6px; margin-bottom:14px;">No code? Jump into a random game on this device — pass-and-play, not live with friends.</p>
       <div class="options" id="browse-categories"></div>
       <div class="options sub-options hidden" id="browse-subcategories"></div>
       <button class="random-btn hidden" id="random-btn">🎲 Random Game →</button>
@@ -256,9 +257,13 @@
 
   </main>
 
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore-compat.js"></script>
+<script src="firebase-init.js"></script>
 <script src="game-data.js"></script>
 <script src="categories.js"></script>
 <script src="code.js"></script>
+<script src="room.js"></script>
 <script src="join.js"></script>
 </body>
 </html>
