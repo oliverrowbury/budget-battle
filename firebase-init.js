@@ -10,3 +10,5 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+
+const AI_JUDGE_URL = "https://us-central1-bidoff-763b0.cloudfunctions.net/judgeSquads";

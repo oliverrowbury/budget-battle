@@ -1,0 +1,12 @@
+{
+  "name": "functions",
+  "description": "BidOff AI judge — proxies a squad-judging request to Claude, keeping the API key server-side.",
+  "engines": {
+    "node": "20"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-functions": "^5.0.0"
+  },
+  "private": true
+}
