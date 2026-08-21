@@ -588,7 +588,9 @@ function runGame() {
       }
 
       document.getElementById("pass-screen-label").textContent = "Pass the device to";
-      document.getElementById("pass-screen-hint").textContent = "Everyone else look away — enter your secret bid.";
+      document.getElementById("pass-screen-hint").textContent = bidders.length === 1
+        ? "Nobody else can use this one right now (position filled, roster full, or broke) — no competition, just set your price."
+        : "Everyone else look away — enter your secret bid.";
       document.getElementById("blind-bid-controls").classList.remove("hidden");
       input.value = 0;
       input.max = p.budget;

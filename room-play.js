@@ -866,10 +866,17 @@ function runRoomGame(code) {
       const iAmBidder = actingId != null;
       const iHaveSubmitted = !iAmBidder;
       const submittedCount = r.bidderIds.filter((id) => r.bids[id] !== null && r.bids[id] !== undefined).length;
+      // Once someone's filled a position's quota (or gone broke, or filled their
+      // roster) they drop out of bidderIds for items only they were excluded
+      // from — leaving a genuine solo round with nobody to bid against. Real,
+      // not a bug, but "0/1 locked in" alone reads as broken, so spell it out.
+      const soloRound = r.bidderIds.length === 1;
 
       document.getElementById("pass-screen-label").textContent = actingPlayer && actingPlayer.deviceId !== deviceId ? "Pass the device to" : "Your secret bid";
       document.getElementById("pass-player-name").textContent = actingPlayer ? actingPlayer.name : "";
-      document.getElementById("pass-screen-hint").textContent = `${submittedCount}/${r.bidderIds.length} players have locked in a bid.`;
+      document.getElementById("pass-screen-hint").textContent = soloRound
+        ? "Nobody else can use this one right now (position filled, roster full, or broke) — no competition, just set your price."
+        : `${submittedCount}/${r.bidderIds.length} players have locked in a bid.`;
 
       const blindControls = document.getElementById("blind-bid-controls");
       const waitMsg = document.getElementById("blind-wait-msg");
@@ -889,9 +896,11 @@ function runRoomGame(code) {
         waitMsg.classList.remove("hidden");
         const controlledBidders = r.bidderIds.filter((id) => myControlled.includes(id));
         const haveLockedIn = controlledBidders.length > 0;
-        waitMsg.textContent = haveLockedIn
-          ? "Your bid is locked in — waiting for everyone else…"
-          : "Waiting for bidders to lock in their bids…";
+        waitMsg.textContent = soloRound
+          ? `Only ${actingPlayer ? actingPlayer.name : "the other player"} can use this one — nothing to do here, it'll move on automatically.`
+          : haveLockedIn
+            ? "Your bid is locked in — waiting for everyone else…"
+            : "Waiting for bidders to lock in their bids…";
       }
 
       if (!blindListenersBound) {
