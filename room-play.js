@@ -477,10 +477,8 @@ function rpEscapeHtml(s) {
 }
 
 // How many chat messages this device has actually seen. Used to badge the
-// toggle button with an unread count on mobile, where the panel is closed
-// by default. On desktop the panel is always visible (see the >=900px CSS
-// override) and the toggle button — the badge's parent — is hidden there,
-// so the count is tracked but never actually shown.
+// toggle button with an unread count — the panel is closed by default and
+// toggled the same way on every screen size.
 let chatSeenCount = 0;
 let chatLatestCount = 0;
 
@@ -500,11 +498,17 @@ function initChat(code, deviceId) {
     if (badge) badge.classList.add("hidden");
   }
 
-  toggleBtn.addEventListener("click", () => {
-    panel.classList.toggle("open");
-    if (panel.classList.contains("open")) markSeen();
-  });
-  closeBtn.addEventListener("click", () => panel.classList.remove("open"));
+  // The floating toggle button sits top-right, same corner as the panel's
+  // own close button once it's open - without hiding the toggle button
+  // while open, it visually overlaps and swallows clicks meant for close.
+  function setChatOpen(isOpen) {
+    panel.classList.toggle("open", isOpen);
+    toggleBtn.classList.toggle("hidden", isOpen);
+    if (isOpen) markSeen();
+  }
+
+  toggleBtn.addEventListener("click", () => setChatOpen(!panel.classList.contains("open")));
+  closeBtn.addEventListener("click", () => setChatOpen(false));
 
   function send() {
     const text = censorProfanity(input.value.trim().slice(0, 300));
