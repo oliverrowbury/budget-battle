@@ -146,6 +146,7 @@ async function rpStartGame(code, room) {
     queueIndex: next ? next.queueIndex : queue.length,
     turnPointer: 0,
     round: next ? next.round : null,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
   });
 }
 
@@ -169,7 +170,7 @@ async function rpAutoCompleteStep(code) {
     const found = rpFindGiveawayItem(room.queue, room.queueIndex, totalSlots, target);
 
     if (!found) {
-      tx.update(ref, { status: "finished", queueIndex: room.queue.length });
+      tx.update(ref, { status: "finished", queueIndex: room.queue.length, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
       return;
     }
 
@@ -183,6 +184,7 @@ async function rpAutoCompleteStep(code) {
       log,
       queueIndex: found.index + 1,
       status: stillNotFull ? "playing" : "finished",
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
   });
 }
@@ -222,6 +224,7 @@ function rpComputeResolveUpdate(room, winnerId, price, logText) {
     status: next || stuck ? "playing" : "finished",
     queueIndex: next ? next.queueIndex : (stuck ? nextIndex : room.queue.length),
     round: next ? next.round : null,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
   };
 }
 
@@ -251,6 +254,7 @@ async function rpSubmitOpenBid(code, _staleRoom, myId, rawAmount) {
 
     tx.update(ref, {
       round: { ...r, activeIds: newActiveIds, currentBid: val, currentLeaderId: myId, turnIndex: newTurnIndex },
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
   });
 }
@@ -284,7 +288,7 @@ async function rpSubmitOpenPass(code, _staleRoom, myId) {
     }
 
     const newTurnIndex = r.turnIndex % newActiveIds.length;
-    tx.update(ref, { round: { ...r, activeIds: newActiveIds, turnIndex: newTurnIndex } });
+    tx.update(ref, { round: { ...r, activeIds: newActiveIds, turnIndex: newTurnIndex }, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
   });
 }
 
@@ -316,6 +320,7 @@ async function rpSubmitOfferSkip(code, _staleRoom, myId) {
 
     tx.update(ref, {
       round: { ...r, pendingSkip: { offeredBy: myId, responderQueue: r.activeIds.filter((id) => id !== myId) } },
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
   });
 }
@@ -336,7 +341,7 @@ async function rpSubmitAgreeSkip(code, _staleRoom, myId) {
       tx.update(ref, { ...update, skipAvailable: false, skipRestrictedTo: null });
       return;
     }
-    tx.update(ref, { round: { ...r, pendingSkip: { ...r.pendingSkip, responderQueue: newQueue } } });
+    tx.update(ref, { round: { ...r, pendingSkip: { ...r.pendingSkip, responderQueue: newQueue } }, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
   });
 }
 
@@ -372,7 +377,7 @@ async function rpSubmitBlindBid(code, room, myId, rawAmount) {
     const allIn = r.bidderIds.every((id) => newBids[id] !== null);
 
     if (!allIn) {
-      tx.update(ref, { round: { ...r, bids: newBids } });
+      tx.update(ref, { round: { ...r, bids: newBids }, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
       return;
     }
 
@@ -409,7 +414,7 @@ async function rpLeaveGame(code, deviceId) {
     const me = room.players.find((p) => p.deviceId === deviceId);
     const name = me ? me.name : "A player";
     const log = [`${name} left — the BidOff has been ended for everyone.`, ...(room.log || [])].slice(0, 40);
-    tx.update(ref, { status: "aborted", round: null, log });
+    tx.update(ref, { status: "aborted", round: null, log, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
   });
 }
 
@@ -491,7 +496,7 @@ function initChat(code, deviceId) {
       // Capped, not just appended forever — an unbounded chat array would
       // eventually push the room document toward Firestore's 1MiB limit on
       // a long, chatty game and start silently failing every write to it.
-      const newChat = [...(room.chat || []), { name, text, ts: Date.now() }].slice(-200);
+      const newChat = [...(room.chat || []), { name, text, ts: Date.now(), senderId: me ? me.id : null }].slice(-200);
       tx.update(ref, { chat: newChat });
     });
   }
@@ -502,7 +507,19 @@ function initChat(code, deviceId) {
   });
 }
 
-function renderChat(room) {
+// Consistent, distinct color per sender so messages are tellable apart at a
+// glance instead of everyone's name rendering in the same gold. Keyed by
+// senderId (stable across renames) when known, falling back to name for
+// older messages saved before senderId existed.
+const CHAT_COLORS = ["#f0b429", "#2dd4bf", "#7c86ff", "#ff8a65", "#c084fc", "#4ade80", "#f472b6", "#60a5fa"];
+function chatColorFor(key) {
+  const s = String(key);
+  let hash = 0;
+  for (let i = 0; i < s.length; i++) hash = (hash * 31 + s.charCodeAt(i)) >>> 0;
+  return CHAT_COLORS[hash % CHAT_COLORS.length];
+}
+
+function renderChat(room, myPlayer) {
   const el = document.getElementById("chat-messages");
   const panel = document.getElementById("chat-panel");
   const badge = document.getElementById("chat-badge");
@@ -512,7 +529,13 @@ function renderChat(room) {
   if (el) {
     const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
     el.innerHTML = chat
-      .map((m) => `<div class="chat-msg"><span class="who">${rpEscapeHtml(m.name)}</span>${rpEscapeHtml(m.text)}</div>`)
+      .map((m) => {
+        const mine = myPlayer != null && m.senderId != null && m.senderId === myPlayer.id;
+        const colorKey = m.senderId != null ? m.senderId : m.name;
+        const style = mine ? "" : ` style="color:${chatColorFor(colorKey)}"`;
+        const label = mine ? "You" : rpEscapeHtml(m.name);
+        return `<div class="chat-msg${mine ? " mine" : ""}"><span class="who"${style}>${label}</span>${rpEscapeHtml(m.text)}</div>`;
+      })
       .join("");
     if (atBottom) el.scrollTop = el.scrollHeight;
   }
@@ -611,7 +634,7 @@ function runRoomGame(code, isSpectator) {
   );
 
   function render(room, myPlayer) {
-    renderChat(room);
+    renderChat(room, myPlayer);
     document.getElementById("game-title").textContent = room.gameKey;
     document.getElementById("game-subtitle").textContent =
       `${room.numPlayers} players · $${room.budget} budget · ${room.auctionType === "blind" ? "Blind Bid" : "Open Bid"}`;

@@ -141,9 +141,17 @@ async function joinPublicRoom(code, btnEl) {
   }
 }
 
+// Games nobody has touched in hours are effectively dead - the host closed
+// the tab without ever finishing or leaving properly, so the room never
+// left "lobby"/"playing". Without this they'd sit in the public list
+// forever looking "Live" to everyone else.
+const STALE_ROOM_MS = 3 * 60 * 60 * 1000;
+
 function renderPublicGames() {
+  const now = Date.now();
   const rooms = latestPublicRooms
     .filter((r) => selectedPublicCategory === "All" || r.category === selectedPublicCategory)
+    .filter((r) => r.updatedAtMs && now - r.updatedAtMs < STALE_ROOM_MS)
     .sort((a, b) => (b.updatedAtMs || 0) - (a.updatedAtMs || 0))
     .slice(0, 30);
 
