@@ -543,9 +543,15 @@ function runRoomGame(code) {
       renderRosters(room);
       renderRound(room, myPlayer);
 
-      // Nothing actionable to show (the sole remaining player is broke) —
-      // the host's device paces through their remaining picks one at a time.
-      if (!room.round && deviceId === room.hostDeviceId && !autoStepTimer) {
+      // Nothing actionable to show (the sole remaining player is broke, or
+      // momentarily has nothing left they can bid on) — whichever device is
+      // actually open paces through the remaining picks one at a time. Not
+      // gated to the host: the host is often the player who just finished
+      // their roster and has put their phone away, so relying on only their
+      // tab to drive this forward left the other player stuck staring at a
+      // frozen screen. The transaction inside rpAutoCompleteStep makes it
+      // safe for multiple devices to attempt this at once.
+      if (!room.round && !autoStepTimer) {
         autoStepTimer = setTimeout(() => {
           autoStepTimer = null;
           rpAutoCompleteStep(code);
@@ -656,7 +662,12 @@ function runRoomGame(code) {
     log.innerHTML = room.log.map((line) => `<div>${line}</div>`).join("");
 
     const r = room.round;
-    if (!r) return;
+    document.getElementById("wrapping-up-msg").classList.toggle("hidden", !!r);
+    if (!r) {
+      document.getElementById("open-bid-area").classList.add("hidden");
+      document.getElementById("pass-screen").classList.add("hidden");
+      return;
+    }
 
     document.getElementById("item-name").textContent = r.item.name;
     document.getElementById("item-position").textContent = r.item.position || "";
