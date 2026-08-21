@@ -86,19 +86,14 @@ function rpFindNextRound(players, queue, fromIndex, totalSlots, turnPointer, auc
   return null;
 }
 
-// Once only one player still has an unfilled squad, there's no one left to bid
-// against them — hand them their remaining needed picks directly instead of
-// making them click through solo "auctions" against nobody.
-function rpAutoCompleteRemaining(players, queue, fromIndex, totalSlots, player, log) {
+// Finds the next queue item the given player could use, ignoring budget —
+// used once they're the last one left and broke, so items are handed to
+// them one at a time (each visibly logged) instead of an instant bulk grant.
+function rpFindGiveawayItem(queue, fromIndex, totalSlots, player) {
   for (let i = fromIndex; i < queue.length; i++) {
-    if (rpRosterFull(player, totalSlots)) break;
-    const item = queue[i];
-    if (rpEligibleIgnoreBudget(player, item, totalSlots)) {
-      const price = player.budget >= 1 ? 1 : 0;
-      rpAwardItem(players, player.id, item, price);
-      log.unshift(`${player.name} auto-won ${item.name} for ${price > 0 ? `$${price}` : "free"} — squad completed`);
-    }
+    if (rpEligibleIgnoreBudget(player, queue[i], totalSlots)) return { item: queue[i], index: i };
   }
+  return null;
 }
 
 function rpAwardItem(players, winnerId, item, price) {
@@ -146,6 +141,44 @@ async function rpStartGame(code, room) {
   });
 }
 
+// Called on a short client-side delay whenever status is "playing" but
+// there's no active round — hands the stuck (broke) player one item, then
+// leaves it to the next scheduled call to do the next one, so each pick is
+// visible in the log instead of the whole rest of the game vanishing at once.
+async function rpAutoCompleteStep(code) {
+  const ref = db.collection("rooms").doc(code);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const room = snap.data();
+    if (room.status !== "playing" || room.round) return;
+
+    const totalSlots = room.totalSlotsPerPlayer;
+    const notFull = room.players.filter((p) => !rpRosterFull(p, totalSlots));
+    if (notFull.length !== 1) return;
+
+    const players = rpClone(room.players);
+    const target = players.find((p) => p.id === notFull[0].id);
+    const found = rpFindGiveawayItem(room.queue, room.queueIndex, totalSlots, target);
+
+    if (!found) {
+      tx.update(ref, { status: "finished", queueIndex: room.queue.length });
+      return;
+    }
+
+    const price = target.budget >= 1 ? 1 : 0;
+    rpAwardItem(players, target.id, found.item, price);
+    const log = [`${target.name} auto-won ${found.item.name} for ${price > 0 ? `$${price}` : "free"} — squad completed`, ...room.log].slice(0, 40);
+    const stillNotFull = !rpRosterFull(target, totalSlots);
+
+    tx.update(ref, {
+      players,
+      log,
+      queueIndex: found.index + 1,
+      status: stillNotFull ? "playing" : "finished",
+    });
+  });
+}
+
 // Seats a device may act for: its own claimed seat, plus any unclaimed seat
 // if this device is the host (host manually passes their own phone around).
 function rpControlledIds(room, deviceId) {
@@ -167,19 +200,19 @@ function rpComputeResolveUpdate(room, winnerId, price, logText) {
   const nextIndex = room.round.itemIndex + 1;
 
   const notFull = players.filter((p) => !rpRosterFull(p, totalSlots));
-  let next = null;
-  if (notFull.length === 1) {
-    rpAutoCompleteRemaining(players, room.queue, nextIndex, totalSlots, notFull[0], log);
-  } else if (notFull.length > 1) {
-    next = rpFindNextRound(players, room.queue, nextIndex, totalSlots, newTurnPointer, room.auctionType);
-  }
+  const next = notFull.length > 0
+    ? rpFindNextRound(players, room.queue, nextIndex, totalSlots, newTurnPointer, room.auctionType)
+    : null;
+  // Sole remaining player, but too broke to be "eligible" the normal way —
+  // fall into the give-away stepper instead of ending the game outright.
+  const stuck = notFull.length === 1 && !next;
 
   return {
     players,
     turnPointer: newTurnPointer,
     log: log.slice(0, 40),
-    status: next ? "playing" : "finished",
-    queueIndex: next ? next.queueIndex : room.queue.length,
+    status: next || stuck ? "playing" : "finished",
+    queueIndex: next ? next.queueIndex : (stuck ? nextIndex : room.queue.length),
     round: next ? next.round : null,
   };
 }
@@ -430,6 +463,7 @@ function runRoomGame(code) {
   let joined = false;
   let openListenersBound = false;
   let blindListenersBound = false;
+  let autoStepTimer = null;
 
   document.getElementById("room-name-field").classList.remove("hidden");
   document.getElementById("room-player-list").classList.remove("hidden");
@@ -491,6 +525,15 @@ function runRoomGame(code) {
       renderScoreboard(room);
       renderRosters(room);
       renderRound(room, myPlayer);
+
+      // Nothing actionable to show (the sole remaining player is broke) —
+      // the host's device paces through their remaining picks one at a time.
+      if (!room.round && deviceId === room.hostDeviceId && !autoStepTimer) {
+        autoStepTimer = setTimeout(() => {
+          autoStepTimer = null;
+          rpAutoCompleteStep(code);
+        }, 700);
+      }
     } else if (room.status === "finished") {
       lobbyView.classList.add("hidden");
       gameView.classList.add("hidden");
