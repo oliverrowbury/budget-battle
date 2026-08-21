@@ -5,6 +5,11 @@ const gamePanelsContainer = document.querySelector(".game-panels");
 let selectedCategory = null;
 let selectedGameKey = null;
 
+function goTo(url) {
+  if (typeof window.bidoffNavigate === "function") window.bidoffNavigate(url);
+  else window.location.href = url;
+}
+
 function poolLabel(key) {
   return key.replace(/^[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]\s*/u, "");
 }
@@ -201,7 +206,7 @@ startButton.addEventListener("click", async () => {
     const code = typeof encodeGameCode === "function" ? encodeGameCode(cfg) : null;
     const urlParams = new URLSearchParams({ game: cfg.game, players: cfg.players, auction: cfg.auction, budget: cfg.budget, slots: cfg.slots, ai: "1" });
     if (code) urlParams.set("code", code);
-    window.location.href = `play.html?${urlParams.toString()}`;
+    goTo(`play.html?${urlParams.toString()}`);
     return;
   }
 
@@ -212,7 +217,7 @@ startButton.addEventListener("click", async () => {
 
   try {
     const roomCode = await createRoom({ game: selectedGameKey, players, auction, budget, slots, isPublic, category: selectedCategory });
-    window.location.href = `play.html?room=${roomCode}`;
+    goTo(`play.html?room=${roomCode}`);
   } catch (e) {
     startButton.disabled = false;
     startButton.textContent = "CREATE BIDOFF →";

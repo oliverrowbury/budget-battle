@@ -530,6 +530,7 @@ function runRoomGame(code) {
   let lastCurrentBid = null;
   let lastBidItemIndex = null;
   let lastLogFirst = null;
+  let lastRenderedItemIndex = null;
 
   document.getElementById("room-name-field").classList.remove("hidden");
   document.getElementById("room-player-list").classList.remove("hidden");
@@ -733,6 +734,10 @@ function runRoomGame(code) {
 
     document.getElementById("item-name").textContent = r.item.name;
     document.getElementById("item-position").textContent = r.item.position || "";
+    if (r.itemIndex !== lastRenderedItemIndex) {
+      if (lastRenderedItemIndex !== null) rpPulseClass(document.querySelector(".up-for-bid"), "item-swap");
+      lastRenderedItemIndex = r.itemIndex;
+    }
 
     const myControlled = rpControlledIds(room, deviceId);
 

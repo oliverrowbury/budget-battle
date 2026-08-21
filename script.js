@@ -8,12 +8,17 @@ categories.forEach((header) => {
   });
 });
 
+function goTo(url) {
+  if (typeof window.bidoffNavigate === "function") window.bidoffNavigate(url);
+  else window.location.href = url;
+}
+
 document.querySelector(".play").addEventListener("click", () => {
-  window.location.href = "join.html";
+  goTo("join.html");
 });
 
 document.querySelector(".secondary").addEventListener("click", () => {
-  window.location.href = "create.html";
+  goTo("create.html");
 });
 
 const categoryToCreateKey = {
@@ -35,6 +40,6 @@ document.querySelectorAll(".game").forEach((game) => {
       : topCategory.querySelector(".category-header span").textContent.trim().replace(/^\S+\s*/, "");
     const target = categoryToCreateKey[name];
 
-    window.location.href = target ? `create.html?category=${target}` : "create.html";
+    goTo(target ? `create.html?category=${target}` : "create.html");
   });
 });
