@@ -119,7 +119,9 @@ function rpAwardItem(players, winnerId, item, price) {
 
 // ---------- state mutations (each performed by whichever device caused it) ----------
 
-async function rpStartGame(code, room) {
+async function rpStartGame(code, room, deviceId) {
+  if (room.hostDeviceId !== deviceId) return; // only the host can start
+
   // Any seats nobody joined from a separate device become local pass-the-device
   // seats — the host controls them on their own phone, exactly like the old
   // single-device mode. deviceId: null marks a seat as unclaimed.
@@ -228,13 +230,14 @@ function rpComputeResolveUpdate(room, winnerId, price, logText) {
   };
 }
 
-async function rpSubmitOpenBid(code, _staleRoom, myId, rawAmount) {
+async function rpSubmitOpenBid(code, _staleRoom, myId, rawAmount, deviceId) {
   const ref = db.collection("rooms").doc(code);
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     const room = snap.data();
     const r = room.round;
     if (!r || r.type !== "open" || r.activeIds[r.turnIndex] !== myId) return;
+    if (!rpControlledIds(room, deviceId).includes(myId)) return;
 
     const me = room.players.find((p) => p.id === myId);
     const val = parseInt(rawAmount, 10);
@@ -266,13 +269,14 @@ function rpCanOfferSkip(room, r, myId) {
 
 // Classic, unlimited: you just don't want to outbid the current leader.
 // Removes you from this item's bidding — no restriction, no cost, every item.
-async function rpSubmitOpenPass(code, _staleRoom, myId) {
+async function rpSubmitOpenPass(code, _staleRoom, myId, deviceId) {
   const ref = db.collection("rooms").doc(code);
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     const room = snap.data();
     const r = room.round;
     if (!r || r.type !== "open" || r.pendingSkip || r.activeIds[r.turnIndex] !== myId) return;
+    if (!rpControlledIds(room, deviceId).includes(myId)) return;
     if (r.currentBid <= 0) return; // nothing to decline outbidding yet
 
     const newActiveIds = r.activeIds.filter((id) => id !== myId);
@@ -301,13 +305,14 @@ function rpGiftCandidate(room, r) {
   return room.players.find((p) => p.budget < 1 && rpEligibleIgnoreBudget(p, r.item, room.totalSlotsPerPlayer)) || null;
 }
 
-async function rpSubmitOfferSkip(code, _staleRoom, myId) {
+async function rpSubmitOfferSkip(code, _staleRoom, myId, deviceId) {
   const ref = db.collection("rooms").doc(code);
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     const room = snap.data();
     const r = room.round;
     if (!r || r.type !== "open" || r.pendingSkip || r.activeIds[r.turnIndex] !== myId) return;
+    if (!rpControlledIds(room, deviceId).includes(myId)) return;
 
     const me = room.players.find((p) => p.id === myId);
     const gift = rpGiftCandidate(room, r);
@@ -327,13 +332,14 @@ async function rpSubmitOfferSkip(code, _staleRoom, myId) {
 
 // Responder agrees to skip. Once every other active bidder has agreed, the
 // item goes unsold and the shared skip is used up for the rest of the game.
-async function rpSubmitAgreeSkip(code, _staleRoom, myId) {
+async function rpSubmitAgreeSkip(code, _staleRoom, myId, deviceId) {
   const ref = db.collection("rooms").doc(code);
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     const room = snap.data();
     const r = room.round;
     if (!r || r.type !== "open" || !r.pendingSkip || r.pendingSkip.responderQueue[0] !== myId) return;
+    if (!rpControlledIds(room, deviceId).includes(myId)) return;
 
     const newQueue = r.pendingSkip.responderQueue.slice(1);
     if (newQueue.length === 0) {
@@ -347,13 +353,14 @@ async function rpSubmitAgreeSkip(code, _staleRoom, myId) {
 
 // Responder declines the skip and takes the item free instead. The shared
 // skip isn't used up — it becomes restricted to whoever just took it free.
-async function rpSubmitTakeFree(code, _staleRoom, myId) {
+async function rpSubmitTakeFree(code, _staleRoom, myId, deviceId) {
   const ref = db.collection("rooms").doc(code);
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     const room = snap.data();
     const r = room.round;
     if (!r || r.type !== "open" || !r.pendingSkip || r.pendingSkip.responderQueue[0] !== myId) return;
+    if (!rpControlledIds(room, deviceId).includes(myId)) return;
 
     const me = room.players.find((p) => p.id === myId);
     const update = rpComputeResolveUpdate(room, myId, 0, `${me.name} took ${r.item.name} for free`);
@@ -361,7 +368,7 @@ async function rpSubmitTakeFree(code, _staleRoom, myId) {
   });
 }
 
-async function rpSubmitBlindBid(code, room, myId, rawAmount) {
+async function rpSubmitBlindBid(code, room, myId, rawAmount, deviceId) {
   const ref = db.collection("rooms").doc(code);
   const me = room.players.find((p) => p.id === myId);
   const v = parseInt(rawAmount, 10);
@@ -372,6 +379,7 @@ async function rpSubmitBlindBid(code, room, myId, rawAmount) {
     const freshRoom = snap.data();
     const r = freshRoom.round;
     if (!r || r.type !== "blind" || !(myId in r.bids) || r.bids[myId] !== null) return;
+    if (!rpControlledIds(freshRoom, deviceId).includes(myId)) return;
 
     const newBids = { ...r.bids, [myId]: val };
     const allIn = r.bidderIds.every((id) => newBids[id] !== null);
@@ -441,12 +449,13 @@ async function rpLeaveGame(code, deviceId) {
   });
 }
 
-async function rpRename(code, myId, newName) {
+async function rpRename(code, myId, newName, deviceId) {
   const ref = db.collection("rooms").doc(code);
-  const trimmed = newName.trim().slice(0, 20) || `Player ${myId + 1}`;
+  const trimmed = censorProfanity(newName.trim().slice(0, 20)) || `Player ${myId + 1}`;
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     const room = snap.data();
+    if (!rpControlledIds(room, deviceId).includes(myId)) return;
     const players = room.players.map((p) => (p.id === myId ? { ...p, name: trimmed } : p));
     tx.update(ref, { players });
   });
@@ -743,7 +752,7 @@ function runRoomGame(code, isSpectator) {
     if (!nameInput.dataset.wired) {
       nameInput.dataset.wired = "1";
       nameInput.addEventListener("change", () => {
-        if (myPlayer) rpRename(code, myPlayer.id, nameInput.value);
+        if (myPlayer) rpRename(code, myPlayer.id, nameInput.value, deviceId);
       });
     }
 
@@ -762,7 +771,7 @@ function runRoomGame(code, isSpectator) {
         startBtn.addEventListener("click", () => {
           if (startBtn.disabled) return;
           startBtn.disabled = true;
-          rpStartGame(code, latestRoom);
+          rpStartGame(code, latestRoom, deviceId);
         });
       }
     } else {
@@ -934,9 +943,9 @@ function runRoomGame(code, isSpectator) {
           skipBtn.disabled = true;
           const rr = latestRoom.round;
           if (rr.pendingSkip) {
-            rpSubmitAgreeSkip(code, latestRoom, rr.pendingSkip.responderQueue[0]);
+            rpSubmitAgreeSkip(code, latestRoom, rr.pendingSkip.responderQueue[0], deviceId);
           } else {
-            rpSubmitOpenBid(code, latestRoom, rr.activeIds[rr.turnIndex], bidInput.value);
+            rpSubmitOpenBid(code, latestRoom, rr.activeIds[rr.turnIndex], bidInput.value, deviceId);
           }
         });
         passBtn.addEventListener("click", () => {
@@ -945,7 +954,7 @@ function runRoomGame(code, isSpectator) {
           passBtn.disabled = true;
           skipBtn.disabled = true;
           const rr = latestRoom.round;
-          rpSubmitOpenPass(code, latestRoom, rr.activeIds[rr.turnIndex]);
+          rpSubmitOpenPass(code, latestRoom, rr.activeIds[rr.turnIndex], deviceId);
         });
         skipBtn.addEventListener("click", () => {
           if (skipBtn.disabled) return;
@@ -954,9 +963,9 @@ function runRoomGame(code, isSpectator) {
           skipBtn.disabled = true;
           const rr = latestRoom.round;
           if (rr.pendingSkip) {
-            rpSubmitTakeFree(code, latestRoom, rr.pendingSkip.responderQueue[0]);
+            rpSubmitTakeFree(code, latestRoom, rr.pendingSkip.responderQueue[0], deviceId);
           } else {
-            rpSubmitOfferSkip(code, latestRoom, rr.activeIds[rr.turnIndex]);
+            rpSubmitOfferSkip(code, latestRoom, rr.activeIds[rr.turnIndex], deviceId);
           }
         });
       }
@@ -1055,7 +1064,7 @@ function runRoomGame(code, isSpectator) {
           const pending = rr.bidderIds.filter((id) => controlledNow.includes(id) && (rr.bids[id] === null || rr.bids[id] === undefined));
           if (pending.length === 0) return;
           submitBtn.disabled = true;
-          rpSubmitBlindBid(code, latestRoom, pending[0], blindInput.value);
+          rpSubmitBlindBid(code, latestRoom, pending[0], blindInput.value, deviceId);
         });
       }
     }
