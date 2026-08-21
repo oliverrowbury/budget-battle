@@ -532,7 +532,7 @@ function renderChat(room) {
 
 // ---------- rendering ----------
 
-function runRoomGame(code) {
+function runRoomGame(code, isSpectator) {
   const deviceId = getDeviceId();
   const lobbyView = document.getElementById("lobby-view");
   const gameView = document.getElementById("game-view");
@@ -561,6 +561,8 @@ function runRoomGame(code) {
     backLink.addEventListener("click", (e) => {
       const room = latestRoom;
       if (!room || (room.status !== "lobby" && room.status !== "playing")) return; // nothing live to end
+      const iAmPlayer = room.players.some((p) => p.deviceId === deviceId);
+      if (!iAmPlayer) return; // spectating - just navigate normally, nothing to end
       e.preventDefault();
       e.stopImmediatePropagation();
       const href = backLink.getAttribute("href");
@@ -578,6 +580,10 @@ function runRoomGame(code) {
     });
   }
 
+  if (isSpectator) {
+    document.getElementById("room-name-field").classList.add("hidden");
+  }
+
   db.collection("rooms").doc(code).onSnapshot(
     (snap) => {
       if (!snap.exists) {
@@ -590,7 +596,7 @@ function runRoomGame(code) {
       latestRoom = room;
 
       const myPlayer = room.players.find((p) => p.deviceId === deviceId) || null;
-      if (!myPlayer && !joined && room.status === "lobby" && room.players.length < room.numPlayers) {
+      if (!isSpectator && !myPlayer && !joined && room.status === "lobby" && room.players.length < room.numPlayers) {
         joined = true;
         joinRoom(code).catch(() => { joined = false; });
       }
@@ -612,12 +618,24 @@ function runRoomGame(code) {
 
     document.getElementById("code-badge").classList.remove("hidden");
     document.getElementById("code-value").textContent = code;
+    document.getElementById("invite-links-row").classList.remove("hidden");
+    document.getElementById("spectator-badge").classList.toggle("hidden", !isSpectator);
     if (!document.getElementById("copy-code-btn").dataset.wired) {
       document.getElementById("copy-code-btn").dataset.wired = "1";
       document.getElementById("copy-code-btn").addEventListener("click", () => {
         const link = `${window.location.href.split("?")[0]}?room=${code}`;
         const btn = document.getElementById("copy-code-btn");
         const done = () => { btn.textContent = "Copied!"; setTimeout(() => { btn.textContent = "Copy invite link"; }, 1500); };
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(link).then(done).catch(done);
+        else done();
+      });
+    }
+    if (!document.getElementById("copy-spectator-btn").dataset.wired) {
+      document.getElementById("copy-spectator-btn").dataset.wired = "1";
+      document.getElementById("copy-spectator-btn").addEventListener("click", () => {
+        const link = `${window.location.href.split("?")[0]}?room=${code}&spectate=1`;
+        const btn = document.getElementById("copy-spectator-btn");
+        const done = () => { btn.textContent = "Copied!"; setTimeout(() => { btn.textContent = "👀 Copy spectator link"; }, 1500); };
         if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(link).then(done).catch(done);
         else done();
       });

@@ -712,6 +712,16 @@
     <h1 id="game-title">BidOff</h1>
     <p class="subtitle" id="game-subtitle"></p>
 
+    <div class="code-badge hidden" id="code-badge" style="justify-content: center; margin: 0 auto 8px;">
+      <span class="code-label">Game code</span>
+      <span class="code-value" id="code-value"></span>
+    </div>
+    <div id="invite-links-row" class="hidden" style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin: 0 0 14px;">
+      <button class="btn" id="copy-code-btn">Copy invite link</button>
+      <button class="btn" id="copy-spectator-btn">👀 Copy spectator link</button>
+    </div>
+    <p id="spectator-badge" class="hidden" style="text-align:center; color:#f0b429; font-weight:600; margin: -6px 0 14px;">👀 You're spectating — watch only, no bidding</p>
+
     <div id="error-view" class="error-box hidden">
       <p>Something's not right with this BidOff link. Head back and set one up.</p>
       <a class="btn btn-gold" href="create.html">Create a BidOff</a>
@@ -727,13 +737,6 @@
         <div class="up-for-bid" style="padding-bottom: 6px;">
           <div class="label">Your BidOff is ready</div>
         </div>
-
-        <div class="code-badge hidden" id="code-badge" style="justify-content: center;">
-          <span class="code-label">Game code</span>
-          <span class="code-value" id="code-value"></span>
-        </div>
-
-        <button class="btn" id="copy-code-btn" style="margin-top: 12px;">Copy invite link</button>
 
         <p id="lobby-copy-hint" style="color: #9a94b8; font-size: 14px; margin: 22px 0 4px; line-height: 1.5;">
           Share this code so friends can start the same game on their own device.<br>
