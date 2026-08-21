@@ -10,6 +10,14 @@ function rpClone(obj) {
   return obj ? JSON.parse(JSON.stringify(obj)) : obj;
 }
 
+// Retriggers a CSS animation by toggling the class off then back on.
+function rpPulseClass(el, className) {
+  if (!el) return;
+  el.classList.remove(className);
+  void el.offsetWidth;
+  el.classList.add(className);
+}
+
 function rpShuffle(arr) {
   const a = arr.slice();
   for (let i = a.length - 1; i > 0; i--) {
@@ -481,6 +489,9 @@ function runRoomGame(code) {
   let blindListenersBound = false;
   let autoStepTimer = null;
   let finishedWired = false;
+  let lastCurrentBid = null;
+  let lastBidItemIndex = null;
+  let lastLogFirst = null;
 
   document.getElementById("room-name-field").classList.remove("hidden");
   document.getElementById("room-player-list").classList.remove("hidden");
@@ -622,19 +633,27 @@ function runRoomGame(code) {
   function renderScoreboard(room) {
     const board = document.getElementById("scoreboard");
     const activeId = room.round && room.round.type === "open" ? room.round.activeIds[room.round.turnIndex] : null;
-    board.innerHTML = room.players.map((p) => `
+    board.innerHTML = room.players.map((p) => {
+      const pct = Math.min(100, Math.round((p.roster.length / room.totalSlotsPerPlayer) * 100));
+      return `
       <div class="player-chip${p.id === activeId ? " active" : ""}">
+        <div class="avatar">${p.name.trim().charAt(0).toUpperCase() || "?"}</div>
         <div class="name">${p.name}${p.deviceId === deviceId ? " (you)" : ""}</div>
-        <div class="budget">$${p.budget}</div>
+        <div class="budget">${p.budget}</div>
+        <div class="roster-bar"><div class="roster-bar-fill" style="width:${pct}%"></div></div>
         <div class="roster-count">${p.roster.length}/${room.totalSlotsPerPlayer} picked</div>
       </div>
-    `).join("");
+    `;
+    }).join("");
   }
 
-  function rosterItemsHtml(p) {
-    return p.roster
+  function rosterItemsHtml(p, room) {
+    const items = p.roster
       .map((r) => `<li>${r.name}${r.position ? `<span class="pos">${r.position} · $${r.price}</span>` : `<span class="pos">$${r.price}</span>`}</li>`)
-      .join("") || "<li style=\"color:#6b6484;\">No picks yet</li>";
+      .join("");
+    const emptyCount = Math.max(0, room.totalSlotsPerPlayer - p.roster.length);
+    const empties = Array.from({ length: emptyCount }, () => `<li class="empty-slot">Empty slot</li>`).join("");
+    return items + empties;
   }
 
   function renderRosters(room) {
@@ -642,7 +661,7 @@ function runRoomGame(code) {
       <div class="roster-card">
         <h3>${p.name}</h3>
         <div class="spent">$${p.spent} spent</div>
-        <ul>${rosterItemsHtml(p)}</ul>
+        <ul>${rosterItemsHtml(p, room)}</ul>
       </div>
     `).join("");
   }
@@ -652,7 +671,7 @@ function runRoomGame(code) {
       <div class="roster-card">
         <h3>${p.name}</h3>
         <div class="spent">$${p.spent} spent · $${p.budget} left</div>
-        <ul>${rosterItemsHtml(p)}</ul>
+        <ul>${rosterItemsHtml(p, room)}</ul>
       </div>
     `).join("");
   }
@@ -660,6 +679,11 @@ function runRoomGame(code) {
   function renderRound(room, myPlayer) {
     const log = document.getElementById("log");
     log.innerHTML = room.log.map((line) => `<div>${line}</div>`).join("");
+
+    if (room.log[0] && room.log[0] !== lastLogFirst) {
+      if (lastLogFirst !== null) rpPulseClass(document.getElementById("auction-card"), "win-flash");
+      lastLogFirst = room.log[0];
+    }
 
     const r = room.round;
     document.getElementById("wrapping-up-msg").classList.toggle("hidden", !!r);
@@ -683,6 +707,12 @@ function runRoomGame(code) {
       const placeBidBtn = document.getElementById("place-bid-btn");
       const passBtn = document.getElementById("pass-btn");
       const skipBtn = document.getElementById("skip-btn");
+
+      if (r.itemIndex === lastBidItemIndex && r.currentBid !== lastCurrentBid) {
+        rpPulseClass(document.getElementById("current-bid-amount"), "bid-pulse");
+      }
+      lastBidItemIndex = r.itemIndex;
+      lastCurrentBid = r.currentBid;
 
       if (r.pendingSkip) {
         const offerer = room.players.find((p) => p.id === r.pendingSkip.offeredBy);

@@ -7,20 +7,37 @@
   <title>BidOff — Live Auction</title>
 
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Manrope:wght@400;600;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;800&family=Manrope:wght@400;600;800&display=swap');
 
     * { box-sizing: border-box; }
+
+    :root {
+      --bg: #0a0714;
+      --panel: rgba(255, 255, 255, 0.035);
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #f6f5fb;
+      --muted: #9a94b8;
+      --accent: #7c86ff;
+      --accent-2: #a16cff;
+      --gold: #f0b429;
+      --gold-2: #ffd873;
+      --teal: #2dd4bf;
+      --teal-2: #5eead4;
+      --font-display: 'Space Grotesk', Arial, Helvetica, sans-serif;
+      --font-body: 'Manrope', Arial, Helvetica, sans-serif;
+    }
 
     body {
       margin: 0;
       min-height: 100vh;
-      font-family: 'Manrope', Arial, Helvetica, sans-serif;
-      color: #f6f5fb;
+      font-family: var(--font-body);
+      color: var(--text);
       background:
         radial-gradient(ellipse 800px 500px at 50% -10%, rgba(124, 134, 255, 0.22), transparent 55%),
         radial-gradient(ellipse 600px 420px at 100% 10%, rgba(240, 180, 41, 0.14), transparent 55%),
         radial-gradient(circle at 50% 20%, #150f27, #0a0714 74%);
       overflow-x: hidden;
+      font-variant-numeric: tabular-nums;
     }
 
     body::before {
@@ -33,8 +50,30 @@
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
     }
 
+    .ambient-glow {
+      position: fixed;
+      width: 720px;
+      height: 720px;
+      top: -140px;
+      left: 50%;
+      border-radius: 50%;
+      background: conic-gradient(from 0deg, var(--accent), var(--gold), var(--teal), var(--accent-2), var(--accent));
+      filter: blur(130px);
+      opacity: 0.16;
+      pointer-events: none;
+      z-index: 0;
+      animation: driftSpin 32s linear infinite;
+      transform-origin: center;
+    }
+
+    @keyframes driftSpin {
+      from { transform: translateX(-50%) rotate(0deg); }
+      to { transform: translateX(-50%) rotate(360deg); }
+    }
+
     .page {
       position: relative;
+      z-index: 1;
       max-width: 760px;
       margin: auto;
       padding: 40px 20px 80px;
@@ -62,7 +101,7 @@
       right: 0;
       height: 100vh;
       width: 50vw;
-      background: #150f27;
+      background: linear-gradient(180deg, #170f2c, #0d0a1a);
       border-left: 1px solid rgba(255, 255, 255, 0.08);
       z-index: 55;
       display: flex;
@@ -160,7 +199,7 @@
 
     h1 {
       font-family: 'Space Grotesk', sans-serif;
-      font-weight: 700;
+      font-weight: 800;
       font-size: 32px;
       margin: 20px 0 4px;
     }
@@ -171,78 +210,158 @@
     }
 
     .card {
-      background: rgba(255, 255, 255, 0.035);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 18px;
+      position: relative;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.02));
+      border: 1px solid var(--border);
+      border-radius: 20px;
       padding: 26px;
-      backdrop-filter: blur(12px);
+      backdrop-filter: blur(16px);
       margin-bottom: 20px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+    }
+
+    #auction-card {
+      border-color: rgba(240, 180, 41, 0.22);
+      box-shadow: 0 24px 60px rgba(240, 180, 41, 0.08), 0 0 0 1px rgba(240, 180, 41, 0.06) inset;
+      overflow: hidden;
+    }
+
+    #auction-card.win-flash {
+      animation: winFlash 0.9s ease;
+    }
+
+    @keyframes winFlash {
+      0% { box-shadow: 0 24px 60px rgba(240, 180, 41, 0.08), 0 0 0 1px rgba(240, 180, 41, 0.06) inset; }
+      25% { box-shadow: 0 0 0 2px rgba(240, 180, 41, 0.6), 0 24px 80px rgba(240, 180, 41, 0.4); }
+      100% { box-shadow: 0 24px 60px rgba(240, 180, 41, 0.08), 0 0 0 1px rgba(240, 180, 41, 0.06) inset; }
     }
 
     .scoreboard {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
       gap: 10px;
       margin-bottom: 20px;
     }
 
     .player-chip {
-      padding: 12px 14px;
-      border-radius: 12px;
+      position: relative;
+      padding: 14px;
+      border-radius: 16px;
       background: rgba(255, 255, 255, 0.035);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border);
       text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      transition: 0.25s ease;
+    }
+
+    .player-chip .avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 800;
+      font-size: 14px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #fff;
     }
 
     .player-chip.active {
-      border-color: rgba(240, 180, 41, 0.6);
+      border-color: rgba(240, 180, 41, 0.65);
       background: rgba(240, 180, 41, 0.1);
+      box-shadow: 0 0 0 1px rgba(240, 180, 41, 0.3), 0 8px 26px rgba(240, 180, 41, 0.18);
+      animation: activePulse 1.8s ease-in-out infinite;
+    }
+
+    .player-chip.active .avatar {
+      background: linear-gradient(135deg, var(--gold), var(--gold-2));
+      color: #1a1206;
+    }
+
+    @keyframes activePulse {
+      0%, 100% { box-shadow: 0 0 0 1px rgba(240, 180, 41, 0.3), 0 8px 26px rgba(240, 180, 41, 0.18); }
+      50% { box-shadow: 0 0 0 1px rgba(240, 180, 41, 0.55), 0 8px 34px rgba(240, 180, 41, 0.32); }
     }
 
     .player-chip .name {
       font-family: 'Space Grotesk', sans-serif;
       font-weight: 700;
-      font-size: 14px;
+      font-size: 13.5px;
     }
 
     .player-chip .budget {
-      color: #f0b429;
+      color: var(--gold);
       font-weight: 800;
-      font-size: 18px;
-      margin-top: 4px;
+      font-size: 19px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
 
-    .player-chip .roster-count {
-      color: #9a94b8;
-      font-size: 12px;
+    .player-chip .budget::before {
+      content: "🪙";
+      font-size: 14px;
+    }
+
+    .player-chip .roster-bar {
+      width: 100%;
+      height: 5px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.08);
+      overflow: hidden;
       margin-top: 2px;
     }
 
+    .player-chip .roster-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--teal));
+      transition: width 0.4s ease;
+    }
+
+    .player-chip .roster-count {
+      color: var(--muted);
+      font-size: 11.5px;
+    }
+
     .up-for-bid {
+      position: relative;
       text-align: center;
       padding: 10px 0 26px;
     }
 
     .up-for-bid .label {
-      font-size: 13px;
+      display: inline-block;
+      font-size: 12px;
       text-transform: uppercase;
       letter-spacing: 1.5px;
-      color: #8d96ad;
-      margin-bottom: 10px;
+      color: #1a1206;
+      background: linear-gradient(135deg, var(--gold), var(--gold-2));
+      padding: 5px 14px;
+      border-radius: 999px;
+      font-weight: 800;
+      margin-bottom: 14px;
     }
 
     .item-name {
+      position: relative;
       font-family: 'Space Grotesk', sans-serif;
-      font-weight: 700;
-      font-size: 30px;
-      background: linear-gradient(135deg, #f0b429, #ffd873);
+      font-weight: 800;
+      font-size: 34px;
+      background: linear-gradient(135deg, var(--gold), var(--gold-2));
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
+      text-shadow: 0 0 60px rgba(240, 180, 41, 0.35);
     }
 
     .item-position {
-      color: #9a94b8;
+      color: var(--muted);
       margin-top: 6px;
       font-size: 15px;
     }
@@ -251,16 +370,34 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 14px;
+      gap: 16px;
     }
 
     .current-bid {
       font-family: 'Space Grotesk', sans-serif;
-      font-size: 22px;
+      font-size: 16px;
+      color: var(--muted);
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
     }
 
     .current-bid strong {
-      color: #f0b429;
+      color: var(--gold);
+      font-size: 40px;
+      font-weight: 800;
+      text-shadow: 0 0 30px rgba(240, 180, 41, 0.3);
+      display: inline-block;
+    }
+
+    .current-bid strong.bid-pulse {
+      animation: bidPulse 0.45s ease;
+    }
+
+    @keyframes bidPulse {
+      0% { transform: scale(1); }
+      35% { transform: scale(1.28); text-shadow: 0 0 40px rgba(240, 180, 41, 0.7); }
+      100% { transform: scale(1); }
     }
 
     .turn-prompt {
@@ -286,7 +423,15 @@
       color: #f6f5fb;
       font-family: 'Space Grotesk', sans-serif;
       font-size: 18px;
+      font-weight: 700;
       text-align: center;
+      transition: 0.18s ease;
+    }
+
+    input[type="number"]:focus {
+      outline: none;
+      border-color: rgba(240, 180, 41, 0.6);
+      background: rgba(240, 180, 41, 0.06);
     }
 
     button {
@@ -300,23 +445,50 @@
       border-radius: 12px;
       font-weight: 700;
       font-size: 15px;
-      background: rgba(124, 134, 255, 0.14);
+      background: rgba(255, 255, 255, 0.04);
       color: #f6f5fb;
-      border: 1px solid rgba(124, 134, 255, 0.3);
+      border: 1.5px solid rgba(255, 255, 255, 0.14);
       transition: 0.18s ease;
     }
 
-    .btn:hover { background: rgba(124, 134, 255, 0.22); }
+    .btn:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.24);
+      transform: translateY(-2px);
+    }
+
+    .btn:active:not(:disabled) {
+      transform: translateY(0);
+    }
 
     .btn-gold {
-      background: linear-gradient(135deg, #f0b429, #ffd873);
+      background: linear-gradient(135deg, var(--gold), var(--gold-2));
       color: #1a1206;
       border: none;
+      box-shadow: 0 8px 24px rgba(240, 180, 41, 0.25);
+    }
+
+    .btn-gold:hover:not(:disabled) {
+      box-shadow: 0 12px 32px rgba(240, 180, 41, 0.4);
+      transform: translateY(-2px);
+    }
+
+    #skip-btn {
+      background: rgba(45, 212, 191, 0.12);
+      border: 1.5px solid rgba(45, 212, 191, 0.4);
+      color: var(--teal-2);
+    }
+
+    #skip-btn:hover:not(:disabled) {
+      background: rgba(45, 212, 191, 0.2);
+      border-color: rgba(45, 212, 191, 0.6);
+      transform: translateY(-2px);
     }
 
     .btn:disabled {
       opacity: 0.35;
       cursor: not-allowed;
+      transform: none !important;
     }
 
     .pass-screen {
@@ -340,12 +512,25 @@
       max-height: 180px;
       overflow-y: auto;
       font-size: 14px;
-      color: #9a94b8;
+      color: var(--muted);
     }
 
     .log div {
-      padding: 6px 0;
+      position: relative;
+      padding: 8px 0 8px 14px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .log div::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 12px;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--gold);
+      opacity: 0.7;
     }
 
     .log strong {
@@ -358,33 +543,75 @@
       gap: 16px;
     }
 
+    .roster-card {
+      background: rgba(255, 255, 255, 0.025);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px;
+    }
+
     .roster-card h3 {
       font-family: 'Space Grotesk', sans-serif;
       margin: 0 0 4px;
     }
 
     .roster-card .spent {
-      color: #f0b429;
+      color: var(--gold);
       font-weight: 700;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
     }
 
     .roster-card ul {
       list-style: none;
       padding: 0;
       margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
     }
 
     .roster-card li {
-      padding: 8px 0;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-      font-size: 15px;
+      position: relative;
+      padding: 10px 12px 10px 16px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 14.5px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .roster-card li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 8px;
+      bottom: 8px;
+      width: 3px;
+      border-radius: 3px;
+      background: linear-gradient(180deg, var(--accent), var(--teal));
+    }
+
+    .roster-card li.empty-slot {
+      color: #4f5667;
+      font-weight: 500;
+      font-style: italic;
+      border-style: dashed;
+      background: transparent;
+    }
+
+    .roster-card li.empty-slot::before {
+      background: rgba(255, 255, 255, 0.1);
     }
 
     .roster-card li .pos {
-      color: #9a94b8;
+      color: var(--gold);
       font-size: 12px;
-      display: block;
+      font-weight: 700;
+      white-space: nowrap;
     }
 
     .hidden { display: none !important; }
@@ -430,6 +657,8 @@
 </head>
 
 <body>
+
+  <div class="ambient-glow"></div>
 
   <button class="chat-toggle-btn hidden" id="chat-toggle-btn">💬</button>
 
