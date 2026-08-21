@@ -171,12 +171,28 @@
       font-size: 14px;
       line-height: 1.4;
       word-break: break-word;
+      max-width: 85%;
+      padding: 8px 12px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.05);
+      align-self: flex-start;
+    }
+
+    .chat-msg.mine {
+      align-self: flex-end;
+      background: rgba(124, 134, 255, 0.18);
+      border: 1px solid rgba(124, 134, 255, 0.32);
     }
 
     .chat-msg .who {
-      color: #f0b429;
+      display: block;
       font-weight: 700;
-      margin-right: 6px;
+      font-size: 12px;
+      margin-bottom: 2px;
+    }
+
+    .chat-msg.mine .who {
+      color: #9aa3ff;
     }
 
     .chat-input-row {
