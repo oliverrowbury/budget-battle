@@ -530,18 +530,6 @@ function initChat(code, deviceId) {
   });
 }
 
-// Consistent, distinct color per sender so messages are tellable apart at a
-// glance instead of everyone's name rendering in the same gold. Keyed by
-// senderId (stable across renames) when known, falling back to name for
-// older messages saved before senderId existed.
-const CHAT_COLORS = ["#f0b429", "#2dd4bf", "#7c86ff", "#ff8a65", "#c084fc", "#4ade80", "#f472b6", "#60a5fa"];
-function chatColorFor(key) {
-  const s = String(key);
-  let hash = 0;
-  for (let i = 0; i < s.length; i++) hash = (hash * 31 + s.charCodeAt(i)) >>> 0;
-  return CHAT_COLORS[hash % CHAT_COLORS.length];
-}
-
 function renderChat(room, myPlayer) {
   const el = document.getElementById("chat-messages");
   const panel = document.getElementById("chat-panel");
@@ -554,8 +542,9 @@ function renderChat(room, myPlayer) {
     el.innerHTML = chat
       .map((m) => {
         const mine = myPlayer != null && m.senderId != null && m.senderId === myPlayer.id;
-        const colorKey = m.senderId != null ? m.senderId : m.name;
-        const style = mine ? "" : ` style="color:${chatColorFor(colorKey)}"`;
+        // Your own messages are green, everyone else's are red - simple and
+        // instant to tell apart, no need to track a color per person.
+        const style = mine ? "" : ` style="color:#ff4757"`;
         const label = mine ? "You" : rpEscapeHtml(m.name);
         return `<div class="chat-msg${mine ? " mine" : ""}"><span class="who"${style}>${label}</span>${rpEscapeHtml(m.text)}</div>`;
       })
