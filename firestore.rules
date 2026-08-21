@@ -1,0 +1,43 @@
+rules_version = '2';
+
+// BidOff has no login system - every player is just a random ID stored in
+// their own browser's localStorage, so there is no way for these rules to
+// cryptographically verify "this write really came from a legitimate
+// player in this room." That would need real Firebase Authentication,
+// which is a bigger change than a rules file. What these rules DO give
+// you: nobody can delete a room, and every write is checked against the
+// room's actual shape (right field types, budgets that can't go negative,
+// arrays that can't be blown up past what the game ever legitimately
+// writes) - so an accidental bad client, or someone messing around in the
+// browser console, can corrupt at most their own game and can't rack up
+// storage costs by writing junk.
+//
+// Deploy this from the Firebase Console: Firestore Database -> Rules tab
+// -> paste this in -> Publish. No CLI needed.
+
+function isRoom(data) {
+  return data.gameKey is string
+    && data.status in ["lobby", "playing", "finished"]
+    && data.budget is number && data.budget >= 0
+    && data.numPlayers is number && data.numPlayers >= 2 && data.numPlayers <= 8
+    && data.players is list && data.players.size() <= 8
+    && data.log is list && data.log.size() <= 40
+    && (!("chat" in data) || (data.chat is list && data.chat.size() <= 200));
+}
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /rooms/{code} {
+      allow read: if true;
+      allow create: if isRoom(request.resource.data);
+      allow update: if isRoom(request.resource.data)
+        // gameKey/budget/numPlayers/hostDeviceId are set once at creation
+        // and never legitimately change afterward.
+        && request.resource.data.gameKey == resource.data.gameKey
+        && request.resource.data.budget == resource.data.budget
+        && request.resource.data.numPlayers == resource.data.numPlayers
+        && request.resource.data.hostDeviceId == resource.data.hostDeviceId;
+      allow delete: if false;
+    }
+  }
+}
