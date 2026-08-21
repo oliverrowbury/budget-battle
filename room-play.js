@@ -464,6 +464,7 @@ function runRoomGame(code) {
   let openListenersBound = false;
   let blindListenersBound = false;
   let autoStepTimer = null;
+  let finishedWired = false;
 
   document.getElementById("room-name-field").classList.remove("hidden");
   document.getElementById("room-player-list").classList.remove("hidden");
@@ -539,6 +540,10 @@ function runRoomGame(code) {
       gameView.classList.add("hidden");
       resultsView.classList.remove("hidden");
       renderFinalRosters(room);
+      if (!finishedWired) {
+        finishedWired = true;
+        if (typeof wireAiJudge === "function") wireAiJudge(room.gameKey, room.players);
+      }
     }
   }
 

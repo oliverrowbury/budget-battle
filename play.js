@@ -210,6 +210,7 @@ function runGame() {
     gameView.classList.add("hidden");
     resultsView.classList.remove("hidden");
     renderFinalRosters();
+    if (typeof wireAiJudge === "function") wireAiJudge(gameKey, players);
   }
 
   function allRostersFull() {

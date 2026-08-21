@@ -543,6 +543,13 @@
         <h2 style="font-family:'Space Grotesk',sans-serif; margin-top:0;">🏆 BidOff Complete</h2>
         <div class="rosters" id="final-rosters"></div>
       </div>
+      <div class="card">
+        <div class="up-for-bid" style="padding-bottom: 10px;">
+          <div class="label">AI Judge</div>
+        </div>
+        <button class="btn btn-gold" id="ai-judge-btn" style="width: 100%;">🤖 Ask the AI Who Won</button>
+        <div id="ai-judge-result" class="hidden" style="margin-top: 14px; text-align: center;"></div>
+      </div>
       <a class="btn btn-gold" href="create.html" style="display:block; text-align:center; text-decoration:none;">Start Another BidOff</a>
     </div>
   </main>
@@ -550,6 +557,7 @@
 <script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore-compat.js"></script>
 <script src="firebase-init.js"></script>
+<script src="ai-judge.js"></script>
 <script src="game-data.js"></script>
 <script src="code.js"></script>
 <script src="room.js"></script>
