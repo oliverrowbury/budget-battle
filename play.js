@@ -1,5 +1,6 @@
 const params = new URLSearchParams(window.location.search);
 const roomCode = params.get("room");
+const vsAI = params.get("ai") === "1";
 
 let gameKey = params.get("game");
 let numPlayers = parseInt(params.get("players"), 10);
@@ -110,14 +111,16 @@ function runGame() {
 
   const players = [];
   for (let i = 0; i < numPlayers; i++) {
+    const isAI = vsAI && i > 0;
     players.push({
       id: i,
-      name: `Player ${i + 1}`,
+      name: isAI ? `🤖 AI ${i}` : vsAI ? "You" : `Player ${i + 1}`,
       budget: startingBudget,
       roster: [],
       spent: 0,
       needs: clone(slotRequirement),
       capsRemaining: clone(caps),
+      isAI,
     });
   }
 
@@ -332,12 +335,32 @@ function runGame() {
       return players.find((p) => p.budget < 1 && eligibleIgnoreBudget(p, item)) || null;
     }
 
+    function hideAllControls() {
+      bidInput.classList.add("hidden");
+      passBtn.classList.add("hidden");
+      skipBtn.classList.add("hidden");
+      placeBidBtn.classList.add("hidden");
+    }
+
+    function showAllControls() {
+      placeBidBtn.classList.remove("hidden");
+    }
+
     function updateUI() {
       if (pendingSkip) {
         const responder = pendingSkip.responderQueue[0];
         renderScoreboard(responder.id);
         document.getElementById("current-bid-amount").textContent = `$${currentBid}`;
         document.getElementById("current-bid-leader").textContent = currentLeader ? `(${currentLeader.name})` : "";
+
+        if (responder.isAI) {
+          hideAllControls();
+          document.getElementById("turn-prompt").textContent = `${pendingSkip.offeredBy.name} offered a skip — ${responder.name} is deciding…`;
+          setTimeout(aiRespondToSkip, 650 + Math.random() * 500);
+          return;
+        }
+
+        showAllControls();
         document.getElementById("turn-prompt").textContent = `${pendingSkip.offeredBy.name} wants to skip this item — ${responder.name}, agree or take it free?`;
         bidInput.classList.add("hidden");
         passBtn.classList.add("hidden");
@@ -346,15 +369,25 @@ function runGame() {
         skipBtn.textContent = "Take It (Free)";
         return;
       }
+
+      const current = active[turn % active.length];
+      renderScoreboard(current.id);
+      document.getElementById("current-bid-amount").textContent = `$${currentBid}`;
+      document.getElementById("current-bid-leader").textContent = currentLeader ? `(${currentLeader.name})` : "";
+
+      if (current.isAI) {
+        hideAllControls();
+        document.getElementById("turn-prompt").textContent = `${current.name} is thinking…`;
+        setTimeout(aiTakeOpenTurn, 650 + Math.random() * 500);
+        return;
+      }
+
+      showAllControls();
       bidInput.classList.remove("hidden");
       const canPass = currentBid > 0;
       passBtn.classList.toggle("hidden", !canPass);
       placeBidBtn.textContent = "Place Bid";
       passBtn.textContent = "Pass";
-      renderScoreboard(active[turn % active.length].id);
-      document.getElementById("current-bid-amount").textContent = `$${currentBid}`;
-      document.getElementById("current-bid-leader").textContent = currentLeader ? `(${currentLeader.name})` : "";
-      const current = active[turn % active.length];
       const offerable = canOfferSkip();
       const gift = giftCandidate();
       const options = [canPass ? "pass" : null, offerable ? "offer a skip" : null, gift ? `give it to ${gift.name}` : null].filter(Boolean).join(" or ");
@@ -369,6 +402,43 @@ function runGame() {
         skipBtn.classList.toggle("hidden", !offerable);
         skipBtn.textContent = "Skip";
       }
+    }
+
+    // Rough heuristic: spend roughly an even share of remaining budget per
+    // remaining slot, with some randomness so the AI doesn't feel robotic.
+    function aiTakeOpenTurn() {
+      const current = active[turn % active.length];
+      if (!current || !current.isAI) return;
+      const slotsLeft = Math.max(1, totalSlotsPerPlayer - current.roster.length);
+      const perSlot = Math.max(1, Math.floor(current.budget / slotsLeft));
+      const ceiling = Math.max(1, Math.min(current.budget, Math.round(perSlot * (0.7 + Math.random() * 1.1))));
+
+      if (currentBid === 0) {
+        const openBid = Math.max(1, Math.min(current.budget, Math.round(ceiling * (0.15 + Math.random() * 0.35))));
+        bidInput.value = openBid;
+        onBid();
+        return;
+      }
+
+      const wantsToRaise = Math.random() < 0.65;
+      if (wantsToRaise && currentBid + 1 <= ceiling && currentBid + 1 <= current.budget) {
+        bidInput.value = currentBid + 1;
+        onBid();
+      } else if (canOfferSkip() && Math.random() < 0.25) {
+        onOfferSkip();
+      } else {
+        onPass();
+      }
+    }
+
+    function aiRespondToSkip() {
+      if (!pendingSkip) return;
+      const responder = pendingSkip.responderQueue[0];
+      if (!responder || !responder.isAI) return;
+      const slotsLeft = totalSlotsPerPlayer - responder.roster.length;
+      const desperate = slotsLeft >= Math.ceil(totalSlotsPerPlayer * 0.4) && Math.random() < 0.4;
+      if (desperate) onTakeFree();
+      else onAgreeSkip();
     }
 
     function step() {
@@ -477,17 +547,8 @@ function runGame() {
     const input = document.getElementById("blind-bid-input");
     const btn = document.getElementById("submit-blind-bid-btn");
 
-    function prompt() {
+    function submitBid(val) {
       const p = bidders[idx];
-      nameEl.textContent = p.name;
-      input.value = 0;
-      input.max = p.budget;
-      renderScoreboard(p.id);
-    }
-
-    function onSubmit() {
-      const p = bidders[idx];
-      const val = parseInt(input.value, 10);
       const safeVal = Number.isInteger(val) && val >= 0 && val <= p.budget ? val : 0;
       bids.push({ player: p, amount: safeVal });
       idx++;
@@ -497,6 +558,35 @@ function runGame() {
       } else {
         prompt();
       }
+    }
+
+    function prompt() {
+      const p = bidders[idx];
+      nameEl.textContent = p.name;
+      renderScoreboard(p.id);
+
+      if (p.isAI) {
+        document.getElementById("pass-screen-label").textContent = "Now bidding";
+        document.getElementById("pass-screen-hint").textContent = `${p.name} is deciding their bid…`;
+        document.getElementById("blind-bid-controls").classList.add("hidden");
+        setTimeout(() => {
+          const slotsLeft = Math.max(1, totalSlotsPerPlayer - p.roster.length);
+          const perSlot = Math.max(1, Math.floor(p.budget / slotsLeft));
+          const val = Math.max(0, Math.min(p.budget, Math.round(perSlot * (0.3 + Math.random() * 0.85))));
+          submitBid(val);
+        }, 650 + Math.random() * 500);
+        return;
+      }
+
+      document.getElementById("pass-screen-label").textContent = "Pass the device to";
+      document.getElementById("pass-screen-hint").textContent = "Everyone else look away — enter your secret bid.";
+      document.getElementById("blind-bid-controls").classList.remove("hidden");
+      input.value = 0;
+      input.max = p.budget;
+    }
+
+    function onSubmit() {
+      submitBid(parseInt(input.value, 10));
     }
 
     function reveal() {

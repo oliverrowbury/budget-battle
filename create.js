@@ -160,6 +160,19 @@ document.querySelectorAll(".section .options .option").forEach((button) => {
   });
 });
 
+function isAiMode() {
+  const opponentSelected = document.querySelector('.section[data-key="opponent"] .option.selected');
+  return opponentSelected && opponentSelected.dataset.value === "ai";
+}
+
+document.querySelectorAll('.section[data-key="opponent"] .option').forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const aiMode = isAiMode();
+    document.querySelector('.section[data-key="visibility"]').classList.toggle("hidden", aiMode);
+    startButton.textContent = aiMode ? "START GAME →" : "CREATE BIDOFF →";
+  });
+});
+
 function updateStartButton() {
   const playersSelected = document.querySelector('.section[data-key="players"] .option.selected');
   const auctionSelected = document.querySelector('.section[data-key="auction"] .option.selected');
@@ -169,7 +182,7 @@ function updateStartButton() {
   const slotsFixed = slotsSection.classList.contains("hidden");
   const slotsSelected = slotsFixed || document.querySelector('.section[data-key="slots"] .option.selected');
 
-  const visibilitySelected = document.querySelector('.section[data-key="visibility"] .option.selected');
+  const visibilitySelected = isAiMode() || document.querySelector('.section[data-key="visibility"] .option.selected');
 
   const allSelected = selectedCategory && selectedGameKey && playersSelected && auctionSelected && budgetSelected && slotsSelected && visibilitySelected;
   startButton.disabled = !allSelected;
@@ -182,6 +195,16 @@ startButton.addEventListener("click", async () => {
   const auction = document.querySelector('.section[data-key="auction"] .option.selected').dataset.value;
   const budget = parseInt(document.querySelector('.section[data-key="budget"] .option.selected').dataset.value, 10);
   const slots = parseInt(document.querySelector('.section[data-key="slots"] .option.selected').dataset.value, 10);
+
+  if (isAiMode()) {
+    const cfg = { game: selectedGameKey, players, auction, budget, slots };
+    const code = typeof encodeGameCode === "function" ? encodeGameCode(cfg) : null;
+    const urlParams = new URLSearchParams({ game: cfg.game, players: cfg.players, auction: cfg.auction, budget: cfg.budget, slots: cfg.slots, ai: "1" });
+    if (code) urlParams.set("code", code);
+    window.location.href = `play.html?${urlParams.toString()}`;
+    return;
+  }
+
   const isPublic = document.querySelector('.section[data-key="visibility"] .option.selected').dataset.value === "public";
 
   startButton.disabled = true;
