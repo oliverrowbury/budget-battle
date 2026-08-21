@@ -35,8 +35,30 @@
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
     }
 
+    .ambient-glow {
+      position: fixed;
+      width: 720px;
+      height: 720px;
+      top: -140px;
+      left: 50%;
+      border-radius: 50%;
+      background: conic-gradient(from 0deg, #7c86ff, #f0b429, #2dd4bf, #a16cff, #7c86ff);
+      filter: blur(130px);
+      opacity: 0.16;
+      pointer-events: none;
+      z-index: 0;
+      animation: driftSpin 32s linear infinite;
+      transform-origin: center;
+    }
+
+    @keyframes driftSpin {
+      from { transform: translateX(-50%) rotate(0deg); }
+      to { transform: translateX(-50%) rotate(360deg); }
+    }
+
     .page {
       position: relative;
+      z-index: 1;
       max-width: 500px;
       margin: auto;
       padding: 40px 20px 80px;
@@ -190,16 +212,40 @@
     .option:hover {
       background: rgba(124, 134, 255, 0.08);
       border-color: rgba(124, 134, 255, 0.3);
+      transform: translateY(-2px);
     }
 
     .option.selected {
-      border-color: rgba(124, 134, 255, 0.6);
-      background: rgba(124, 134, 255, 0.14);
+      border-color: rgba(240, 180, 41, 0.65);
+      background: rgba(240, 180, 41, 0.12);
+      box-shadow: 0 8px 24px rgba(240, 180, 41, 0.15);
     }
 
     .sub-category-button {
       font-size: 13px;
       padding: 13px;
+    }
+
+    .category-button {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .icon-badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      font-size: 17px;
+      flex-shrink: 0;
+      background: rgba(124, 134, 255, 0.14);
+    }
+
+    .category-button.selected .icon-badge {
+      background: rgba(240, 180, 41, 0.2);
     }
 
     .random-btn {
@@ -341,6 +387,8 @@
 </head>
 
 <body>
+
+  <div class="ambient-glow"></div>
 
   <main class="page">
 

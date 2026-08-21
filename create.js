@@ -15,7 +15,7 @@ function buildCategoryButtons() {
     const btn = document.createElement("button");
     btn.className = "option category-button";
     btn.dataset.category = catName;
-    btn.textContent = `${def.icon} ${catName}`;
+    btn.innerHTML = `<span class="icon-badge">${def.icon}</span><span>${catName}</span>`;
     btn.addEventListener("click", () => selectCategory(catName));
     categoryOptions.appendChild(btn);
   });

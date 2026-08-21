@@ -50,6 +50,14 @@ function clone(obj) {
   return obj ? JSON.parse(JSON.stringify(obj)) : obj;
 }
 
+// Retriggers a CSS animation by toggling the class off then back on.
+function pulseClass(el, className) {
+  if (!el) return;
+  el.classList.remove(className);
+  void el.offsetWidth;
+  el.classList.add(className);
+}
+
 function shuffle(arr) {
   const a = arr.slice();
   for (let i = a.length - 1; i > 0; i--) {
@@ -169,13 +177,25 @@ function runGame() {
     players.forEach((p) => {
       const chip = document.createElement("div");
       chip.className = "player-chip" + (p.id === activePlayerId ? " active" : "");
+      const pct = Math.min(100, Math.round((p.roster.length / totalSlotsPerPlayer) * 100));
       chip.innerHTML = `
+        <div class="avatar">${p.name.trim().charAt(0).toUpperCase() || "?"}</div>
         <div class="name">${p.name}</div>
-        <div class="budget">$${p.budget}</div>
+        <div class="budget">${p.budget}</div>
+        <div class="roster-bar"><div class="roster-bar-fill" style="width:${pct}%"></div></div>
         <div class="roster-count">${p.roster.length}/${totalSlotsPerPlayer} picked</div>
       `;
       board.appendChild(chip);
     });
+  }
+
+  function rosterListHtml(p) {
+    const items = p.roster
+      .map((r) => `<li>${r.name}${r.position ? `<span class="pos">${r.position} · $${r.price}</span>` : `<span class="pos">$${r.price}</span>`}</li>`)
+      .join("");
+    const emptyCount = Math.max(0, totalSlotsPerPlayer - p.roster.length);
+    const empties = Array.from({ length: emptyCount }, () => `<li class="empty-slot">Empty slot</li>`).join("");
+    return items + empties;
   }
 
   function renderRosters() {
@@ -184,10 +204,7 @@ function runGame() {
     players.forEach((p) => {
       const card = document.createElement("div");
       card.className = "roster-card";
-      const items = p.roster
-        .map((r) => `<li>${r.name}${r.position ? `<span class="pos">${r.position} · $${r.price}</span>` : `<span class="pos">$${r.price}</span>`}</li>`)
-        .join("");
-      card.innerHTML = `<h3>${p.name}</h3><div class="spent">$${p.spent} spent</div><ul>${items || "<li style=\"color:#6b6484;\">No picks yet</li>"}</ul>`;
+      card.innerHTML = `<h3>${p.name}</h3><div class="spent">$${p.spent} spent</div><ul>${rosterListHtml(p)}</ul>`;
       el.appendChild(card);
     });
   }
@@ -198,10 +215,7 @@ function runGame() {
     players.forEach((p) => {
       const card = document.createElement("div");
       card.className = "roster-card";
-      const items = p.roster
-        .map((r) => `<li>${r.name}${r.position ? `<span class="pos">${r.position} · $${r.price}</span>` : `<span class="pos">$${r.price}</span>`}</li>`)
-        .join("");
-      card.innerHTML = `<h3>${p.name}</h3><div class="spent">$${p.spent} spent · $${p.budget} left</div><ul>${items || "<li style=\"color:#6b6484;\">No picks</li>"}</ul>`;
+      card.innerHTML = `<h3>${p.name}</h3><div class="spent">$${p.spent} spent · $${p.budget} left</div><ul>${rosterListHtml(p)}</ul>`;
       el.appendChild(card);
     });
   }
@@ -278,6 +292,7 @@ function runGame() {
     if (winner) {
       awardItem(item, winner, price);
       logLine(`<strong>${winner.name}</strong> won <strong>${item.name}</strong> for ${price > 0 ? `$${price}` : "free"}`);
+      pulseClass(document.getElementById("auction-card"), "win-flash");
     } else {
       logLine(`${item.name} went unsold — nobody bid`);
     }
@@ -380,6 +395,7 @@ function runGame() {
       active = active.filter((p) => p.budget >= currentBid + 1 || p.id === current.id);
       turn = (active.indexOf(current) + 1) % active.length;
       step();
+      pulseClass(document.getElementById("current-bid-amount"), "bid-pulse");
     }
 
     function onPass() {

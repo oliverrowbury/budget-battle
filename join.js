@@ -42,8 +42,8 @@ function buildBrowseCategories() {
   Object.keys(bidoffCategories).forEach((catName) => {
     const def = bidoffCategories[catName];
     const btn = document.createElement("button");
-    btn.className = "option";
-    btn.textContent = `${def.icon} ${catName}`;
+    btn.className = "option category-button";
+    btn.innerHTML = `<span class="icon-badge">${def.icon}</span><span>${catName}</span>`;
     btn.addEventListener("click", () => selectBrowseCategory(catName, btn));
     browseCategories.appendChild(btn);
   });
