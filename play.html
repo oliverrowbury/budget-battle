@@ -99,6 +99,25 @@
       box-shadow: 0 8px 24px rgba(240, 180, 41, 0.35);
     }
 
+    .chat-badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      min-width: 20px;
+      height: 20px;
+      padding: 0 5px;
+      border-radius: 999px;
+      background: #ff4757;
+      color: #fff;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 11px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 0 2px #0a0714;
+    }
+
     .chat-panel {
       position: fixed;
       top: 0;
@@ -664,7 +683,7 @@
 
   <script src="background.js"></script>
 
-  <button class="chat-toggle-btn hidden" id="chat-toggle-btn">💬</button>
+  <button class="chat-toggle-btn hidden" id="chat-toggle-btn">💬<span class="chat-badge hidden" id="chat-badge"></span></button>
 
   <div class="chat-panel hidden" id="chat-panel">
     <div class="chat-header">

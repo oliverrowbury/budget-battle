@@ -430,30 +430,51 @@ function rpEscapeHtml(s) {
   }[c]));
 }
 
+// How many chat messages this device has actually seen. Used to badge the
+// toggle button with an unread count on mobile, where the panel is closed
+// by default. On desktop the panel is always visible (see the >=900px CSS
+// override) and the toggle button — the badge's parent — is hidden there,
+// so the count is tracked but never actually shown.
+let chatSeenCount = 0;
+let chatLatestCount = 0;
+
 function initChat(code, deviceId) {
   const toggleBtn = document.getElementById("chat-toggle-btn");
   const panel = document.getElementById("chat-panel");
   const closeBtn = document.getElementById("chat-close-btn");
   const input = document.getElementById("chat-input");
   const sendBtn = document.getElementById("chat-send-btn");
+  const badge = document.getElementById("chat-badge");
 
   toggleBtn.classList.remove("hidden");
   panel.classList.remove("hidden");
 
-  toggleBtn.addEventListener("click", () => panel.classList.toggle("open"));
+  function markSeen() {
+    chatSeenCount = chatLatestCount;
+    if (badge) badge.classList.add("hidden");
+  }
+
+  toggleBtn.addEventListener("click", () => {
+    panel.classList.toggle("open");
+    if (panel.classList.contains("open")) markSeen();
+  });
   closeBtn.addEventListener("click", () => panel.classList.remove("open"));
 
   function send() {
     const text = censorProfanity(input.value.trim().slice(0, 300));
     if (!text) return;
     input.value = "";
-    db.collection("rooms").doc(code).get().then((snap) => {
+    const ref = db.collection("rooms").doc(code);
+    db.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
       const room = snap.data();
       const me = room.players.find((p) => p.deviceId === deviceId);
       const name = me ? me.name : "Spectator";
-      db.collection("rooms").doc(code).update({
-        chat: firebase.firestore.FieldValue.arrayUnion({ name, text, ts: Date.now() }),
-      });
+      // Capped, not just appended forever — an unbounded chat array would
+      // eventually push the room document toward Firestore's 1MiB limit on
+      // a long, chatty game and start silently failing every write to it.
+      const newChat = [...(room.chat || []), { name, text, ts: Date.now() }].slice(-200);
+      tx.update(ref, { chat: newChat });
     });
   }
 
@@ -465,13 +486,30 @@ function initChat(code, deviceId) {
 
 function renderChat(room) {
   const el = document.getElementById("chat-messages");
-  if (!el) return;
+  const panel = document.getElementById("chat-panel");
+  const badge = document.getElementById("chat-badge");
   const chat = room.chat || [];
-  const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
-  el.innerHTML = chat
-    .map((m) => `<div class="chat-msg"><span class="who">${rpEscapeHtml(m.name)}</span>${rpEscapeHtml(m.text)}</div>`)
-    .join("");
-  if (atBottom) el.scrollTop = el.scrollHeight;
+  chatLatestCount = chat.length;
+
+  if (el) {
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+    el.innerHTML = chat
+      .map((m) => `<div class="chat-msg"><span class="who">${rpEscapeHtml(m.name)}</span>${rpEscapeHtml(m.text)}</div>`)
+      .join("");
+    if (atBottom) el.scrollTop = el.scrollHeight;
+  }
+
+  if (badge) {
+    const panelOpen = panel && panel.classList.contains("open");
+    if (panelOpen) chatSeenCount = chat.length;
+    const unread = chat.length - chatSeenCount;
+    if (!panelOpen && unread > 0) {
+      badge.textContent = unread > 9 ? "9+" : String(unread);
+      badge.classList.remove("hidden");
+    } else {
+      badge.classList.add("hidden");
+    }
+  }
 }
 
 // ---------- rendering ----------
@@ -588,7 +626,7 @@ function runRoomGame(code) {
 
     const list = document.getElementById("room-player-list");
     list.innerHTML = room.players
-      .map((p) => `<div style="padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.06);">${p.name}${p.deviceId === deviceId ? " (you)" : ""}</div>`)
+      .map((p) => `<div style="padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.06);">${rpEscapeHtml(p.name)}${p.deviceId === deviceId ? " (you)" : ""}</div>`)
       .join("") +
       Array.from({ length: room.numPlayers - room.players.length }).map(() =>
         `<div style="padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.06); color:#6b6484;">Waiting for a player…</div>`
@@ -637,8 +675,8 @@ function runRoomGame(code) {
       const pct = Math.min(100, Math.round((p.roster.length / room.totalSlotsPerPlayer) * 100));
       return `
       <div class="player-chip${p.id === activeId ? " active" : ""}">
-        <div class="avatar">${p.name.trim().charAt(0).toUpperCase() || "?"}</div>
-        <div class="name">${p.name}${p.deviceId === deviceId ? " (you)" : ""}</div>
+        <div class="avatar">${rpEscapeHtml(p.name.trim().charAt(0).toUpperCase() || "?")}</div>
+        <div class="name">${rpEscapeHtml(p.name)}${p.deviceId === deviceId ? " (you)" : ""}</div>
         <div class="budget">${p.budget}</div>
         <div class="roster-bar"><div class="roster-bar-fill" style="width:${pct}%"></div></div>
         <div class="roster-count">${p.roster.length}/${room.totalSlotsPerPlayer} picked</div>
@@ -659,7 +697,7 @@ function runRoomGame(code) {
   function renderRosters(room) {
     document.getElementById("rosters").innerHTML = room.players.map((p) => `
       <div class="roster-card">
-        <h3>${p.name}</h3>
+        <h3>${rpEscapeHtml(p.name)}</h3>
         <div class="spent">$${p.spent} spent</div>
         <ul>${rosterItemsHtml(p, room)}</ul>
       </div>
@@ -669,7 +707,7 @@ function runRoomGame(code) {
   function renderFinalRosters(room) {
     document.getElementById("final-rosters").innerHTML = room.players.map((p) => `
       <div class="roster-card">
-        <h3>${p.name}</h3>
+        <h3>${rpEscapeHtml(p.name)}</h3>
         <div class="spent">$${p.spent} spent · $${p.budget} left</div>
         <ul>${rosterItemsHtml(p, room)}</ul>
       </div>
@@ -678,7 +716,7 @@ function runRoomGame(code) {
 
   function renderRound(room, myPlayer) {
     const log = document.getElementById("log");
-    log.innerHTML = room.log.map((line) => `<div>${line}</div>`).join("");
+    log.innerHTML = room.log.map((line) => `<div>${rpEscapeHtml(line)}</div>`).join("");
 
     if (room.log[0] && room.log[0] !== lastLogFirst) {
       if (lastLogFirst !== null) rpPulseClass(document.getElementById("auction-card"), "win-flash");
