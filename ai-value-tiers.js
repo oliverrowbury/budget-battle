@@ -296,13 +296,348 @@ const aiValueTiers = {
   "Argentina — All-Time": {
     tier1: ["Diego Maradona", "Lionel Messi", "Gabriel Batistuta", "Ángel Di María", "Sergio Agüero"],
   },
+  "MLB — Current": {
+    tier1: [
+      "Shohei Ohtani", "Aaron Judge", "Mookie Betts", "Juan Soto", "Bobby Witt Jr.",
+      "Ronald Acuña Jr.", "Freddie Freeman", "Gunnar Henderson", "Paul Skenes",
+      "Gerrit Cole", "Zack Wheeler", "Corbin Burnes", "José Ramírez",
+    ],
+  },
+  "MLB — All-Time": {
+    tier1: [
+      "Babe Ruth", "Willie Mays", "Hank Aaron", "Ted Williams", "Lou Gehrig", "Ty Cobb",
+      "Mickey Mantle", "Barry Bonds", "Sandy Koufax", "Cy Young", "Walter Johnson",
+      "Rickey Henderson", "Derek Jeter", "Jackie Robinson", "Roberto Clemente",
+      "Mike Trout", "Nolan Ryan",
+    ],
+  },
+  "Rugby — Current": {
+    tier1: [
+      "Antoine Dupont", "Ardie Savea", "Maro Itoje", "Siya Kolisi", "Owen Farrell",
+      "Beauden Barrett", "Finn Russell", "Cheslin Kolbe", "Eben Etzebeth",
+    ],
+  },
+  "Rugby — All-Time": {
+    tier1: [
+      "Jonny Wilkinson", "Dan Carter", "Richie McCaw", "Jonah Lomu", "Brian O'Driscoll",
+      "Martin Johnson", "David Campese", "Serge Blanco", "Gareth Edwards", "Colin Meads",
+      "Michael Jones",
+    ],
+  },
+  "Cricket — Current": {
+    tier1: [
+      "Virat Kohli", "Rohit Sharma", "Joe Root", "Steve Smith", "Kane Williamson",
+      "Babar Azam", "Pat Cummins", "Jasprit Bumrah", "Ben Stokes",
+    ],
+  },
+  "Cricket — All-Time": {
+    tier1: [
+      "Don Bradman", "Sachin Tendulkar", "Vivian Richards", "Brian Lara", "Shane Warne",
+      "Muttiah Muralitharan", "Wasim Akram", "Garfield Sobers", "Ricky Ponting",
+      "Jacques Kallis", "Kapil Dev", "Imran Khan", "AB de Villiers",
+    ],
+  },
+  "Golf — Current": {
+    tier1: [
+      "Scottie Scheffler", "Rory McIlroy", "Jon Rahm", "Xander Schauffele",
+      "Viktor Hovland", "Bryson DeChambeau", "Collin Morikawa", "Brooks Koepka",
+    ],
+  },
+  "Golf — All-Time": {
+    tier1: [
+      "Jack Nicklaus", "Tiger Woods", "Arnold Palmer", "Gary Player", "Ben Hogan",
+      "Sam Snead", "Seve Ballesteros", "Tom Watson", "Nick Faldo",
+    ],
+  },
+  "Athletics — Current": {
+    tier1: [
+      "Noah Lyles", "Mondo Duplantis", "Armand Duplantis", "Sydney McLaughlin-Levrone",
+      "Sydney McLaughlin", "Faith Kipyegon", "Sha'Carri Richardson", "Karsten Warholm",
+    ],
+  },
+  "Athletics — All-Time": {
+    tier1: [
+      "Usain Bolt", "Carl Lewis", "Michael Johnson", "Jesse Owens", "Sebastian Coe",
+      "Haile Gebrselassie", "Eliud Kipchoge", "Florence Griffith-Joyner",
+      "Jackie Joyner-Kersee", "Sergey Bubka",
+    ],
+  },
+  "MotoGP — Current": {
+    tier1: ["Jorge Martín", "Francesco Bagnaia", "Pecco Bagnaia", "Marc Márquez", "Fabio Quartararo"],
+  },
+  "MotoGP — All-Time": {
+    tier1: [
+      "Giacomo Agostini", "Valentino Rossi", "Marc Márquez", "Mick Doohan",
+      "Casey Stoner", "Mike Hailwood", "John Surtees",
+    ],
+  },
+  "Movies — All-Time": {
+    tier1: [
+      "The Godfather", "The Shawshank Redemption", "Pulp Fiction", "The Dark Knight",
+      "Schindler's List", "The Godfather Part II", "Citizen Kane", "Goodfellas",
+      "Fight Club", "Star Wars", "Jaws", "Titanic",
+      "The Lord of the Rings: The Fellowship of the Ring", "12 Angry Men", "Parasite",
+      "Oppenheimer",
+    ],
+  },
+  "Shows — All-Time": {
+    tier1: [
+      "Breaking Bad", "The Wire", "The Sopranos", "Game of Thrones", "The Simpsons",
+      "Seinfeld", "Friends", "Chernobyl", "Succession", "The Office", "Better Call Saul",
+    ],
+  },
+  "Best Cast — All-Time": {
+    tier1: [
+      "Meryl Streep", "Denzel Washington", "Robert De Niro", "Al Pacino", "Jack Nicholson",
+      "Daniel Day-Lewis", "Anthony Hopkins", "Tom Hanks", "Leonardo DiCaprio",
+      "Cate Blanchett", "Marlon Brando", "Katharine Hepburn",
+    ],
+  },
+  "Build a Movie": {
+    tier1: [
+      "Steven Spielberg", "Martin Scorsese", "Christopher Nolan", "Quentin Tarantino",
+      "Alfred Hitchcock", "Stanley Kubrick", "Francis Ford Coppola", "Hayao Miyazaki",
+      "Meryl Streep", "Denzel Washington", "Leonardo DiCaprio", "Tom Hanks",
+      "Hans Zimmer", "John Williams",
+    ],
+  },
+  "US Rap Songs": {
+    tier1: [
+      "Sicko Mode", "God's Plan", "HUMBLE.", "Lose Yourself", "Juicy", "California Love",
+      "Empire State of Mind", "N.Y. State of Mind", "Alright", "Not Like Us", "Big Poppa",
+      "The Real Slim Shady", "Forgot About Dre", "Still D.R.E.", "Money Trees", "King Kunta",
+    ],
+  },
+  "UK Rap": {
+    tier1: ["Stormzy", "Skepta", "Dave", "Central Cee", "Dizzee Rascal", "Wiley", "Kano", "J Hus", "Giggs", "Little Simz"],
+  },
+  "House Artists": {
+    tier1: [
+      "Calvin Harris", "David Guetta", "Fisher", "Disclosure", "Daft Punk", "Fatboy Slim",
+      "Deadmau5", "Skrillex", "Diplo", "Carl Cox", "Tiësto", "Armin van Buuren", "Frankie Knuckles",
+    ],
+  },
+  "Dad Music": {
+    tier1: [
+      "Fleetwood Mac", "Eagles", "Dire Straits", "Eric Clapton", "Bruce Springsteen",
+      "Journey", "Genesis", "Phil Collins", "The Who", "Elton John", "Billy Joel",
+      "Santana", "Beatles",
+    ],
+  },
+  "Drake Songs": {
+    tier1: [
+      "God's Plan", "Hotline Bling", "One Dance", "In My Feelings", "Started From the Bottom",
+      "Nice for What", "Passionfruit", "Take Care", "Best I Ever Had", "Headlines",
+      "Nonstop", "Toosie Slide",
+    ],
+  },
+  "Older Artists": {
+    tier1: [
+      "Frank Sinatra", "Elvis Presley", "The Beatles", "Ray Charles", "Aretha Franklin",
+      "Marvin Gaye", "Stevie Wonder", "James Brown", "Bob Dylan", "The Rolling Stones",
+      "Jimi Hendrix", "Led Zeppelin", "Pink Floyd", "Queen", "David Bowie", "Michael Jackson",
+    ],
+  },
+  "Older Songs": {
+    tier1: [
+      "Rock Around the Clock", "Hound Dog", "My Way", "What a Wonderful World",
+      "Like a Rolling Stone", "(I Can't Get No) Satisfaction", "Bridge Over Troubled Water",
+      "Purple Haze", "God Only Knows", "Somewhere Over the Rainbow",
+    ],
+  },
+  "Video Games": {
+    tier1: [
+      "The Legend of Zelda: Breath of the Wild", "Grand Theft Auto V", "Minecraft",
+      "Red Dead Redemption 2", "The Witcher 3: Wild Hunt", "God of War", "Elden Ring",
+      "Half-Life 2", "Ocarina of Time", "Super Mario Odyssey", "The Last of Us",
+      "Portal 2", "Tetris", "Dark Souls",
+    ],
+  },
+  "Mobile Games": {
+    tier1: [
+      "Candy Crush Saga", "Clash of Clans", "Among Us", "Pokémon GO", "Fortnite Mobile",
+      "PUBG Mobile", "Genshin Impact", "Roblox", "Subway Surfers", "Angry Birds",
+    ],
+  },
+  "All-Time Games": {
+    tier1: ["Chess", "Poker", "Monopoly", "Scrabble", "Risk", "Catan", "Uno", "Dungeons & Dragons", "Magic: The Gathering", "Go"],
+  },
+  "Jurassic Park — Build a Squad": {
+    tier1: [
+      "Tyrannosaurus rex", "Velociraptor", "Spinosaurus", "Indominus rex", "Indoraptor",
+      "Giganotosaurus", "Mosasaurus", "Alan Grant", "Ian Malcolm", "Owen Grady", "John Hammond",
+    ],
+    tier4: ["Compsognathus", "Dimorphodon", "Gallimimus", "Cooper the Guide", "Udesky", "Nash"],
+  },
+  "🐾 Animals": {
+    tier1: [
+      "Lion", "Tiger", "Elephant", "Grizzly Bear", "Polar Bear", "Great White Shark",
+      "Orca", "Crocodile", "Rhinoceros", "Hippopotamus", "Gorilla",
+    ],
+    tier4: ["Hedgehog", "Meerkat", "Otter", "Sloth", "Beaver", "Raccoon", "Dog", "Cat"],
+  },
+  "Build a Country": {
+    tier1: [
+      "Strong Economy", "Universal Healthcare", "Advanced Technology Sector",
+      "World-Class Universities", "Strong Military", "Space Program",
+      "Fastest Internet in the World", "Best Passport (Visa-Free Travel)",
+    ],
+    tier4: ["War-torn", "Population of 100", "Size of Vatican City"],
+  },
+  "🌴 Perfect Life": {
+    tier1: [
+      "Private Island", "Private Jet", "Yacht", "Penthouse Apartment", "Beachfront Mansion",
+      "Generational Wealth", "Own a Football Club", "Immortal", "Never Need to Sleep",
+      "Retire at 40", "Earn £100k a Month",
+    ],
+    tier4: ["Games Room", "A Dog", "Hot Tub", "Vintage Vespa", "Man Cave With a Pool Table"],
+  },
+  "Build a 5-Course Meal": {
+    tier1: [
+      "Wagyu Steak", "Lobster Thermidor", "Beef Wellington", "Filet Mignon", "Foie Gras",
+      "Chateaubriand", "Truffle Pasta", "Tiramisu", "Soufflé",
+    ],
+    tier4: ["Big Mac", "Cheeseburger", "Chicken Nuggets", "Hot Dog", "Fish and Chips"],
+  },
+  "Funniest Squad": {
+    tier1: [
+      "Robin Williams", "Chris Rock", "Dave Chappelle", "Eddie Murphy", "Jerry Seinfeld",
+      "Kevin Hart", "Jim Carrey", "Will Ferrell", "Ricky Gervais", "Larry David",
+      "John Cleese", "Rowan Atkinson",
+    ],
+  },
+  "Survival Apocalypse": {
+    tier1: [
+      "Bear Grylls", "Rick Grimes", "Daryl Dixon", "The Terminator", "Sarah Connor",
+      "Geralt of Rivia", "Navy SEAL", "Ellie Williams", "Katniss Everdeen",
+      "Indiana Jones", "James Bond", "Jason Bourne",
+    ],
+  },
+  "Build a Garage": {
+    tier1: [
+      "Bugatti Chiron", "Bugatti Veyron", "Bugatti Divo", "Koenigsegg Jesko", "Pagani Huayra",
+      "McLaren P1", "McLaren F1", "Ferrari F40", "Ferrari Enzo", "Ferrari 250 GTO",
+      "Lamborghini Miura", "Porsche Carrera GT",
+    ],
+    tier4: ["Mini Cooper S", "Fiat 500 Abarth", "Volkswagen Beetle Classic", "Mazda MX-5 Miata"],
+  },
+  "YouTubers": {
+    tier1: [
+      "MrBeast", "PewDiePie", "Markiplier", "Logan Paul", "KSI", "Jake Paul",
+      "IShowSpeed", "Kai Cenat", "Casey Neistat", "Ninja",
+    ],
+  },
 };
 
+// Some pools are filtered/team-scoped views of the exact same real people
+// already tiered above (an "NBA — Lakers" pool draws from the same real
+// players as "NBA — Current"/"NBA — All-Time"; a "Football — Arsenal" pool
+// draws from the same real players as the league/country pools). Rather
+// than re-curating the same names dozens of times, these fall back to
+// checking the listed pools instead. Some of those pools tag names with a
+// club/team suffix like "Xavi (Barcelona)" - stripped before comparing, so
+// it still matches a plain "Xavi" tier entry elsewhere.
+function stripTag(name) {
+  return String(name).replace(/\s*\([^)]*\)\s*$/, "");
+}
+
+const NBA_FAMILY = ["NBA — All-Time", "NBA — Current"];
+const FOOTBALL_FAMILY = [
+  "Football — All-Time", "Football — Current",
+  "Premier League — Current", "Premier League — All-Time",
+  "La Liga — Current", "La Liga — All-Time",
+  "Bundesliga — All-Time", "Serie A — All-Time", "Ligue 1 — All-Time",
+  "England — All-Time", "Spain — All-Time", "France — All-Time",
+  "Germany — All-Time", "Italy — All-Time", "Brazil — All-Time", "Argentina — All-Time",
+];
+
+const familyFallback = {
+  "EuroLeague — All-Time": NBA_FAMILY,
+  "NBA — All-Time Superstars": NBA_FAMILY,
+  "NBA — Current Superstars": NBA_FAMILY,
+  "NBA — American Players": NBA_FAMILY,
+  "NBA — European Players": NBA_FAMILY,
+  "NBA — Non-American Players": NBA_FAMILY,
+  "NBA — Current U23": NBA_FAMILY,
+  "NBA — Atlanta Hawks": NBA_FAMILY,
+  "NBA — Boston Celtics": NBA_FAMILY,
+  "NBA — Brooklyn Nets": NBA_FAMILY,
+  "NBA — Charlotte Hornets": NBA_FAMILY,
+  "NBA — Chicago Bulls": NBA_FAMILY,
+  "NBA — Cleveland Cavaliers": NBA_FAMILY,
+  "NBA — Dallas Mavericks": NBA_FAMILY,
+  "NBA — Denver Nuggets": NBA_FAMILY,
+  "NBA — Detroit Pistons": NBA_FAMILY,
+  "NBA — Golden State Warriors": NBA_FAMILY,
+  "NBA — Houston Rockets": NBA_FAMILY,
+  "NBA — Indiana Pacers": NBA_FAMILY,
+  "NBA — LA Clippers": NBA_FAMILY,
+  "NBA — Los Angeles Lakers": NBA_FAMILY,
+  "NBA — Memphis Grizzlies": NBA_FAMILY,
+  "NBA — Miami Heat": NBA_FAMILY,
+  "NBA — Milwaukee Bucks": NBA_FAMILY,
+  "NBA — Minnesota Timberwolves": NBA_FAMILY,
+  "NBA — New Orleans Pelicans": NBA_FAMILY,
+  "NBA — New York Knicks": NBA_FAMILY,
+  "NBA — Oklahoma City Thunder": NBA_FAMILY,
+  "NBA — Orlando Magic": NBA_FAMILY,
+  "NBA — Philadelphia 76ers": NBA_FAMILY,
+  "NBA — Phoenix Suns": NBA_FAMILY,
+  "NBA — Portland Trail Blazers": NBA_FAMILY,
+  "NBA — Sacramento Kings": NBA_FAMILY,
+  "NBA — San Antonio Spurs": NBA_FAMILY,
+  "NBA — Toronto Raptors": NBA_FAMILY,
+  "NBA — Utah Jazz": NBA_FAMILY,
+  "NBA — Washington Wizards": NBA_FAMILY,
+
+  "Football — Arsenal": FOOTBALL_FAMILY,
+  "Football — Manchester City": FOOTBALL_FAMILY,
+  "Football — Liverpool": FOOTBALL_FAMILY,
+  "Football — Chelsea": FOOTBALL_FAMILY,
+  "Football — Tottenham Hotspur": FOOTBALL_FAMILY,
+  "Football — Real Madrid": FOOTBALL_FAMILY,
+  "Football — Barcelona": FOOTBALL_FAMILY,
+  "Football — Atlético Madrid": FOOTBALL_FAMILY,
+  "Football — Bayern Munich": FOOTBALL_FAMILY,
+  "Football — Borussia Dortmund": FOOTBALL_FAMILY,
+  "Football — Paris Saint-Germain": FOOTBALL_FAMILY,
+  "Football — Juventus": FOOTBALL_FAMILY,
+  "Football — AC Milan": FOOTBALL_FAMILY,
+  "Football — Inter Milan": FOOTBALL_FAMILY,
+  "Top Clubs — All-Time, One Club": FOOTBALL_FAMILY,
+
+  "Tennis — Men's All-Time": ["Tennis — All-Time", "Tennis — Current"],
+  "Tennis — Women's All-Time": ["Tennis — All-Time", "Tennis — Current"],
+
+  "IPL — Current": ["Cricket — Current", "Cricket — All-Time"],
+  "IPL — All-Time": ["Cricket — All-Time", "Cricket — Current"],
+
+  "F1 — One Team": ["F1 — Current", "F1 — All-Time"],
+  "NFL — One Team": ["NFL — Current", "NFL — All-Time"],
+  "MLB — One Team": ["MLB — Current", "MLB — All-Time"],
+  "Rugby — One Club": ["Rugby — Current", "Rugby — All-Time"],
+  "Cricket — One Team": ["Cricket — Current", "Cricket — All-Time"],
+};
+
+function tierFromPool(pool, itemName) {
+  if (!pool) return 0;
+  const stripped = stripTag(itemName);
+  if (pool.tier1 && (pool.tier1.includes(itemName) || pool.tier1.includes(stripped))) return 1;
+  if (pool.tier2 && (pool.tier2.includes(itemName) || pool.tier2.includes(stripped))) return 2;
+  if (pool.tier4 && (pool.tier4.includes(itemName) || pool.tier4.includes(stripped))) return 4;
+  return 0;
+}
+
 function aiItemTier(gameKey, itemName) {
-  const pool = aiValueTiers[gameKey];
-  if (!pool) return 3;
-  if (pool.tier1 && pool.tier1.includes(itemName)) return 1;
-  if (pool.tier2 && pool.tier2.includes(itemName)) return 2;
-  if (pool.tier4 && pool.tier4.includes(itemName)) return 4;
+  const direct = tierFromPool(aiValueTiers[gameKey], itemName);
+  if (direct) return direct;
+
+  const fallbackKeys = familyFallback[gameKey];
+  if (fallbackKeys) {
+    for (const key of fallbackKeys) {
+      const t = tierFromPool(aiValueTiers[key], itemName);
+      if (t) return t;
+    }
+  }
   return 3;
 }
