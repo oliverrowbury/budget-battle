@@ -227,18 +227,6 @@ function runGame() {
     return true;
   }
 
-  function autoCompleteRemaining(player, fromIndex) {
-    for (let i = fromIndex; i < auctionQueue.length; i++) {
-      if (rosterFull(player)) break;
-      const item = auctionQueue[i];
-      if (eligibleIgnoreBudget(player, item)) {
-        const price = player.budget >= 1 ? 1 : 0;
-        awardItem(item, player, price);
-        logLine(`<strong>${player.name}</strong> auto-won <strong>${item.name}</strong> for ${price > 0 ? `$${price}` : "free"} — squad completed`);
-      }
-    }
-  }
-
   function nextItem(queueIndex) {
     if (allRostersFull()) {
       endGame();
@@ -249,19 +237,24 @@ function runGame() {
       return;
     }
 
-    const notFull = players.filter((p) => !rosterFull(p));
-    if (notFull.length === 1) {
-      autoCompleteRemaining(notFull[0], queueIndex);
-      renderScoreboard(null);
-      renderRosters();
-      endGame();
-      return;
-    }
-
     const item = auctionQueue[queueIndex];
     const eligibleBidders = players.filter((p) => eligible(p, item));
 
     if (eligibleBidders.length === 0) {
+      // Nobody's truly eligible for this one — but if exactly one player
+      // still needs picks and is just broke, hand it to them (visibly, one
+      // item at a time) instead of skipping it or dumping everything at once.
+      const notFull = players.filter((p) => !rosterFull(p));
+      if (notFull.length === 1 && eligibleIgnoreBudget(notFull[0], item)) {
+        const player = notFull[0];
+        const price = player.budget >= 1 ? 1 : 0;
+        awardItem(item, player, price);
+        logLine(`<strong>${player.name}</strong> auto-won <strong>${item.name}</strong> for ${price > 0 ? `$${price}` : "free"} — squad completed`);
+        renderScoreboard(null);
+        renderRosters();
+        setTimeout(() => nextItem(queueIndex + 1), 250);
+        return;
+      }
       nextItem(queueIndex + 1);
       return;
     }
