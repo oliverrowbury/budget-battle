@@ -396,7 +396,30 @@ async function rpSubmitBlindBid(code, room, myId, rawAmount) {
       ? `Bids — ${bidLines} · ${freshRoom.players.find((p) => p.id === winnerId).name} won ${r.item.name} for $${winnerAmount}`
       : `Bids — ${bidLines} · ${r.item.name} went unsold`;
 
-    tx.update(ref, rpComputeResolveUpdate(freshRoom, winnerId, winnerAmount, logText));
+    // Don't jump straight to the next item - hold on the reveal (everyone's
+    // bids + the winner) for a beat first, otherwise the result flashes by
+    // and it's unclear who actually won. rpAdvanceBlindReveal does the
+    // actual transition after a client-side delay.
+    tx.update(ref, {
+      round: { ...r, bids: newBids, resolved: { winnerId, winnerAmount, bidLines, logText } },
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+  });
+}
+
+// Performs the actual transition to the next round after a blind bid's
+// reveal has been showing for a bit. Safe to call from multiple devices at
+// once - once the first call advances the round away from this resolved
+// blind round, every later call sees that and no-ops.
+async function rpAdvanceBlindReveal(code) {
+  const ref = db.collection("rooms").doc(code);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const room = snap.data();
+    const r = room.round;
+    if (!r || r.type !== "blind" || !r.resolved) return;
+    const { winnerId, winnerAmount, logText } = r.resolved;
+    tx.update(ref, rpComputeResolveUpdate(room, winnerId, winnerAmount, logText));
   });
 }
 
@@ -567,6 +590,7 @@ function runRoomGame(code, isSpectator) {
   let openListenersBound = false;
   let blindListenersBound = false;
   let autoStepTimer = null;
+  let blindRevealTimer = null;
   let finishedWired = false;
   let lastCurrentBid = null;
   let lastBidItemIndex = null;
@@ -948,47 +972,85 @@ function runRoomGame(code, isSpectator) {
       document.getElementById("open-bid-area").classList.add("hidden");
       document.getElementById("pass-screen").classList.remove("hidden");
 
-      const myPendingIds = r.bidderIds.filter((id) => myControlled.includes(id) && (r.bids[id] === null || r.bids[id] === undefined));
-      const actingId = myPendingIds.length > 0 ? myPendingIds[0] : null;
-      const actingPlayer = actingId != null ? room.players.find((p) => p.id === actingId) : null;
-      const iAmBidder = actingId != null;
-      const iHaveSubmitted = !iAmBidder;
-      const submittedCount = r.bidderIds.filter((id) => r.bids[id] !== null && r.bids[id] !== undefined).length;
-      // Once someone's filled a position's quota (or gone broke, or filled their
-      // roster) they drop out of bidderIds for items only they were excluded
-      // from — leaving a genuine solo round with nobody to bid against. Real,
-      // not a bug, but "0/1 locked in" alone reads as broken, so spell it out.
-      const soloRound = r.bidderIds.length === 1;
-
-      document.getElementById("pass-screen-label").textContent = actingPlayer && actingPlayer.deviceId !== deviceId ? "Pass the device to" : "Your secret bid";
-      document.getElementById("pass-player-name").textContent = actingPlayer ? actingPlayer.name : "";
-      document.getElementById("pass-screen-hint").textContent = soloRound
-        ? "Nobody else can use this one right now (position filled, roster full, or broke) — no competition, just set your price."
-        : `${submittedCount}/${r.bidderIds.length} players have locked in a bid.`;
-
       const blindControls = document.getElementById("blind-bid-controls");
       const waitMsg = document.getElementById("blind-wait-msg");
       const blindInput = document.getElementById("blind-bid-input");
       const submitBtn = document.getElementById("submit-blind-bid-btn");
+      const revealList = document.getElementById("blind-reveal-list");
 
-      if (iAmBidder && !iHaveSubmitted) {
-        blindControls.classList.remove("hidden");
-        waitMsg.classList.add("hidden");
-        if (document.activeElement !== blindInput) {
-          blindInput.value = 0;
-          blindInput.max = actingPlayer.budget;
-        }
-        submitBtn.disabled = false;
-      } else {
+      if (r.resolved) {
+        // Hold on the reveal instead of cutting straight to the next item -
+        // everyone gets to see who bid what and who actually won.
+        const { winnerId, winnerAmount } = r.resolved;
+        const winner = winnerId != null ? room.players.find((p) => p.id === winnerId) : null;
+
+        document.getElementById("pass-screen-label").textContent = "Bids revealed!";
+        document.getElementById("pass-player-name").textContent = "";
+        document.getElementById("pass-screen-hint").textContent = winner
+          ? `${winner.name} wins ${r.item.name} for $${winnerAmount}!`
+          : `${r.item.name} goes unsold — nobody bid.`;
+
+        revealList.classList.remove("hidden");
+        revealList.innerHTML = r.bidderIds.map((id) => {
+          const p = room.players.find((pp) => pp.id === id);
+          const amt = r.bids[id];
+          const isWinner = id === winnerId;
+          return `<li style="display:flex; justify-content:space-between; padding:8px 12px; border-radius:10px; background:${isWinner ? "rgba(240,180,41,0.14)" : "rgba(255,255,255,0.04)"}; ${isWinner ? "border:1px solid rgba(240,180,41,0.4);" : ""}">
+            <span style="color:${isWinner ? "#f0b429" : "#c9c4dd"}; font-weight:${isWinner ? "700" : "500"};">${rpEscapeHtml(p ? p.name : "?")}${isWinner ? " 🏆" : ""}</span>
+            <span style="color:${isWinner ? "#f0b429" : "#c9c4dd"}; font-weight:${isWinner ? "700" : "500"};">$${amt}</span>
+          </li>`;
+        }).join("");
+
         blindControls.classList.add("hidden");
-        waitMsg.classList.remove("hidden");
-        const controlledBidders = r.bidderIds.filter((id) => myControlled.includes(id));
-        const haveLockedIn = controlledBidders.length > 0;
-        waitMsg.textContent = soloRound
-          ? `Only ${actingPlayer ? actingPlayer.name : "the other player"} can use this one — nothing to do here, it'll move on automatically.`
-          : haveLockedIn
-            ? "Your bid is locked in — waiting for everyone else…"
-            : "Waiting for bidders to lock in their bids…";
+        waitMsg.classList.add("hidden");
+
+        if (!blindRevealTimer) {
+          blindRevealTimer = setTimeout(() => {
+            blindRevealTimer = null;
+            rpAdvanceBlindReveal(code);
+          }, 2600);
+        }
+      } else {
+        revealList.classList.add("hidden");
+        revealList.innerHTML = "";
+
+        const myPendingIds = r.bidderIds.filter((id) => myControlled.includes(id) && (r.bids[id] === null || r.bids[id] === undefined));
+        const actingId = myPendingIds.length > 0 ? myPendingIds[0] : null;
+        const actingPlayer = actingId != null ? room.players.find((p) => p.id === actingId) : null;
+        const iAmBidder = actingId != null;
+        const iHaveSubmitted = !iAmBidder;
+        const submittedCount = r.bidderIds.filter((id) => r.bids[id] !== null && r.bids[id] !== undefined).length;
+        // Once someone's filled a position's quota (or gone broke, or filled their
+        // roster) they drop out of bidderIds for items only they were excluded
+        // from — leaving a genuine solo round with nobody to bid against. Real,
+        // not a bug, but "0/1 locked in" alone reads as broken, so spell it out.
+        const soloRound = r.bidderIds.length === 1;
+
+        document.getElementById("pass-screen-label").textContent = actingPlayer && actingPlayer.deviceId !== deviceId ? "Pass the device to" : "Your secret bid";
+        document.getElementById("pass-player-name").textContent = actingPlayer ? actingPlayer.name : "";
+        document.getElementById("pass-screen-hint").textContent = soloRound
+          ? "Nobody else can use this one right now (position filled, roster full, or broke) — no competition, just set your price."
+          : `${submittedCount}/${r.bidderIds.length} players have locked in a bid.`;
+
+        if (iAmBidder && !iHaveSubmitted) {
+          blindControls.classList.remove("hidden");
+          waitMsg.classList.add("hidden");
+          if (document.activeElement !== blindInput) {
+            blindInput.value = 0;
+            blindInput.max = actingPlayer.budget;
+          }
+          submitBtn.disabled = false;
+        } else {
+          blindControls.classList.add("hidden");
+          waitMsg.classList.remove("hidden");
+          const controlledBidders = r.bidderIds.filter((id) => myControlled.includes(id));
+          const haveLockedIn = controlledBidders.length > 0;
+          waitMsg.textContent = soloRound
+            ? `Only ${actingPlayer ? actingPlayer.name : "the other player"} can use this one — nothing to do here, it'll move on automatically.`
+            : haveLockedIn
+              ? "Your bid is locked in — waiting for everyone else…"
+              : "Waiting for bidders to lock in their bids…";
+        }
       }
 
       if (!blindListenersBound) {

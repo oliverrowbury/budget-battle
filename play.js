@@ -606,13 +606,34 @@ function runGame() {
       bids.forEach((b) => {
         if (b.amount > 0 && (!winningBid || b.amount > winningBid.amount)) winningBid = b;
       });
-      if (winningBid) {
-        const bidLines = bids.map((b) => `${b.player.name}: $${b.amount}`).join(", ");
-        logLine(`Bids — ${bidLines}`);
-        resolveItem(item, winningBid.player, winningBid.amount, queueIndex);
-      } else {
-        resolveItem(item, null, 0, queueIndex);
-      }
+      const bidLines = bids.map((b) => `${b.player.name}: $${b.amount}`).join(", ");
+      if (winningBid) logLine(`Bids — ${bidLines}`);
+
+      // Pause on the reveal instead of cutting straight to the next item -
+      // otherwise the bids just vanish and it's unclear who actually won.
+      document.getElementById("blind-bid-controls").classList.add("hidden");
+      document.getElementById("blind-wait-msg").classList.add("hidden");
+      document.getElementById("pass-screen-label").textContent = "Bids revealed!";
+      nameEl.textContent = "";
+      document.getElementById("pass-screen-hint").textContent = winningBid
+        ? `${winningBid.player.name} wins ${item.name} for $${winningBid.amount}!`
+        : `${item.name} goes unsold — nobody bid.`;
+
+      const revealList = document.getElementById("blind-reveal-list");
+      revealList.classList.remove("hidden");
+      revealList.innerHTML = bids.map((b) => {
+        const isWinner = winningBid && b.player.id === winningBid.player.id;
+        return `<li style="display:flex; justify-content:space-between; padding:8px 12px; border-radius:10px; background:${isWinner ? "rgba(240,180,41,0.14)" : "rgba(255,255,255,0.04)"}; ${isWinner ? "border:1px solid rgba(240,180,41,0.4);" : ""}">
+          <span style="color:${isWinner ? "#f0b429" : "#c9c4dd"}; font-weight:${isWinner ? "700" : "500"};">${b.player.name}${isWinner ? " 🏆" : ""}</span>
+          <span style="color:${isWinner ? "#f0b429" : "#c9c4dd"}; font-weight:${isWinner ? "700" : "500"};">$${b.amount}</span>
+        </li>`;
+      }).join("");
+
+      setTimeout(() => {
+        revealList.classList.add("hidden");
+        if (winningBid) resolveItem(item, winningBid.player, winningBid.amount, queueIndex);
+        else resolveItem(item, null, 0, queueIndex);
+      }, 2600);
     }
 
     btn.addEventListener("click", onSubmit);
