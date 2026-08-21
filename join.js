@@ -96,3 +96,115 @@ randomBtn.addEventListener("click", () => {
 });
 
 buildBrowseCategories();
+
+// ---------- Find a public game ----------
+const publicCategoryChips = document.getElementById("public-category-chips");
+const publicGamesList = document.getElementById("public-games-list");
+let selectedPublicCategory = "All";
+let latestPublicRooms = [];
+
+function poolLabelPublic(key) {
+  return key.replace(/^[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]\s*/u, "");
+}
+
+function buildPublicCategoryChips() {
+  const names = ["All", ...Object.keys(bidoffCategories)];
+  names.forEach((catName) => {
+    const chip = document.createElement("button");
+    chip.className = "chip" + (catName === "All" ? " selected" : "");
+    chip.textContent = catName === "All" ? "All" : `${bidoffCategories[catName].icon} ${catName}`;
+    chip.addEventListener("click", () => {
+      selectedPublicCategory = catName;
+      publicCategoryChips.querySelectorAll(".chip").forEach((c) => c.classList.remove("selected"));
+      chip.classList.add("selected");
+      renderPublicGames();
+    });
+    publicCategoryChips.appendChild(chip);
+  });
+}
+
+async function joinPublicRoom(code, btnEl) {
+  btnEl.disabled = true;
+  btnEl.textContent = "JOINING…";
+  try {
+    await joinRoom(code);
+    window.location.href = `play.html?room=${code}`;
+  } catch (e) {
+    btnEl.disabled = false;
+    btnEl.textContent = "JOIN";
+    alert("Couldn't join that game — it may have just filled up or started.");
+  }
+}
+
+function renderPublicGames() {
+  const rooms = latestPublicRooms
+    .filter((r) => selectedPublicCategory === "All" || r.category === selectedPublicCategory)
+    .sort((a, b) => (b.updatedAtMs || 0) - (a.updatedAtMs || 0))
+    .slice(0, 30);
+
+  publicGamesList.innerHTML = "";
+
+  if (!rooms.length) {
+    publicGamesList.innerHTML = `<div class="public-games-empty">No public games right now — create one and it'll show up here for others.</div>`;
+    return;
+  }
+
+  rooms.forEach((r) => {
+    const row = document.createElement("div");
+    row.className = "public-game-row";
+
+    const waiting = r.status === "lobby" && r.players.length < r.numPlayers;
+    const badgeHtml = waiting
+      ? `<span class="status-badge waiting">Waiting for player</span>`
+      : `<span class="status-badge live">Live</span>`;
+
+    const info = document.createElement("div");
+    info.className = "public-game-info";
+    info.innerHTML =
+      `<div class="public-game-name">${poolLabelPublic(r.gameKey)}</div>` +
+      `<div class="public-game-meta">${badgeHtml}<span>${r.players.length}/${r.numPlayers} players</span></div>`;
+    row.appendChild(info);
+
+    const btn = document.createElement("button");
+    btn.className = "join-row-btn";
+    if (waiting) {
+      btn.textContent = "JOIN";
+      btn.addEventListener("click", () => joinPublicRoom(r.code, btn));
+    } else {
+      btn.textContent = "IN PROGRESS";
+      btn.disabled = true;
+    }
+    row.appendChild(btn);
+
+    publicGamesList.appendChild(row);
+  });
+}
+
+function watchPublicGames() {
+  db.collection("rooms")
+    .where("isPublic", "==", true)
+    .where("status", "in", ["lobby", "playing"])
+    .onSnapshot(
+      (snap) => {
+        latestPublicRooms = snap.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            code: doc.id,
+            gameKey: data.gameKey,
+            category: data.category,
+            status: data.status,
+            players: data.players || [],
+            numPlayers: data.numPlayers,
+            updatedAtMs: data.updatedAt && data.updatedAt.toMillis ? data.updatedAt.toMillis() : 0,
+          };
+        });
+        renderPublicGames();
+      },
+      () => {
+        publicGamesList.innerHTML = `<div class="public-games-empty">Couldn't load public games — check your connection.</div>`;
+      }
+    );
+}
+
+buildPublicCategoryChips();
+watchPublicGames();

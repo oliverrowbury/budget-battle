@@ -169,7 +169,9 @@ function updateStartButton() {
   const slotsFixed = slotsSection.classList.contains("hidden");
   const slotsSelected = slotsFixed || document.querySelector('.section[data-key="slots"] .option.selected');
 
-  const allSelected = selectedCategory && selectedGameKey && playersSelected && auctionSelected && budgetSelected && slotsSelected;
+  const visibilitySelected = document.querySelector('.section[data-key="visibility"] .option.selected');
+
+  const allSelected = selectedCategory && selectedGameKey && playersSelected && auctionSelected && budgetSelected && slotsSelected && visibilitySelected;
   startButton.disabled = !allSelected;
 }
 
@@ -180,12 +182,13 @@ startButton.addEventListener("click", async () => {
   const auction = document.querySelector('.section[data-key="auction"] .option.selected').dataset.value;
   const budget = parseInt(document.querySelector('.section[data-key="budget"] .option.selected').dataset.value, 10);
   const slots = parseInt(document.querySelector('.section[data-key="slots"] .option.selected').dataset.value, 10);
+  const isPublic = document.querySelector('.section[data-key="visibility"] .option.selected').dataset.value === "public";
 
   startButton.disabled = true;
   startButton.textContent = "CREATING…";
 
   try {
-    const roomCode = await createRoom({ game: selectedGameKey, players, auction, budget, slots });
+    const roomCode = await createRoom({ game: selectedGameKey, players, auction, budget, slots, isPublic, category: selectedCategory });
     window.location.href = `play.html?room=${roomCode}`;
   } catch (e) {
     startButton.disabled = false;

@@ -221,6 +221,122 @@
     .random-btn:hover {
       background: rgba(124, 134, 255, 0.26);
     }
+
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .chip {
+      padding: 9px 15px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #c9c4dd;
+      cursor: pointer;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      transition: 0.18s ease;
+    }
+
+    .chip:hover {
+      background: rgba(124, 134, 255, 0.1);
+    }
+
+    .chip.selected {
+      border-color: rgba(240, 180, 41, 0.6);
+      background: rgba(240, 180, 41, 0.14);
+      color: #ffd873;
+    }
+
+    .public-games-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .public-game-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 15px 16px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .public-game-info {
+      min-width: 0;
+    }
+
+    .public-game-name {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 15px;
+      color: #f6f5fb;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .public-game-meta {
+      font-size: 12px;
+      color: #9a94b8;
+      margin-top: 3px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .status-badge.waiting {
+      background: rgba(124, 134, 255, 0.18);
+      color: #b8bfff;
+    }
+
+    .status-badge.live {
+      background: rgba(46, 204, 113, 0.16);
+      color: #6fe3a1;
+    }
+
+    .public-game-row .join-row-btn {
+      flex-shrink: 0;
+      padding: 11px 18px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #f0b429, #ffd873);
+      color: #1a1206;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .public-game-row .join-row-btn:disabled {
+      background: rgba(255, 255, 255, 0.06);
+      color: #6b6484;
+      cursor: default;
+    }
+
+    .public-games-empty {
+      color: #6b6484;
+      font-size: 14px;
+      text-align: center;
+      padding: 24px 0;
+    }
   </style>
 </head>
 
@@ -244,6 +360,15 @@
     </button>
 
     <p class="error-msg hidden" id="join-error"></p>
+
+    <div class="divider">or</div>
+
+    <div class="section">
+      <div class="section-title">Find a public game</div>
+      <p style="color:#6b6484; font-size:13px; margin-top:-6px; margin-bottom:14px;">Live games and open lobbies anyone can jump into — no code needed.</p>
+      <div class="chip-row" id="public-category-chips"></div>
+      <div class="public-games-list" id="public-games-list"></div>
+    </div>
 
     <div class="divider">or</div>
 

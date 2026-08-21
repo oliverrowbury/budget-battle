@@ -43,6 +43,8 @@ async function createRoom(cfg) {
 
   const room = {
     gameKey: cfg.game,
+    category: cfg.category || null,
+    isPublic: !!cfg.isPublic,
     auctionType: cfg.auction,
     budget: cfg.budget,
     numPlayers: cfg.players,
@@ -105,7 +107,10 @@ async function joinRoom(rawCode) {
       needs: room.slotRequirement ? { ...room.slotRequirement } : null,
       capsRemaining: room.caps ? { ...room.caps } : null,
     };
-    tx.update(ref, { players: [...room.players, newPlayer] });
+    tx.update(ref, {
+      players: [...room.players, newPlayer],
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
   });
 
   return code;
