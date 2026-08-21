@@ -398,6 +398,22 @@ async function rpRename(code, myId, newName) {
   });
 }
 
+// ---------- profanity filter ----------
+// Chat messages are auto-censored client-side before being sent/stored.
+
+const PROFANITY_WORDS = [
+  "fuck", "shit", "bitch", "cunt", "bastard", "dick", "dickhead", "piss", "cock", "pussy",
+  "nigger", "nigga", "faggot", "fag", "retard", "whore", "slut", "twat", "wanker", "bollocks",
+  "motherfucker", "asshole", "dumbass", "jackass", "smartass", "rapist",
+  "paki", "chink", "spic", "kike", "tranny", "coon",
+];
+
+const PROFANITY_REGEX = new RegExp("\\b(" + PROFANITY_WORDS.join("|") + ")\\w*\\b", "gi");
+
+function censorProfanity(text) {
+  return String(text).replace(PROFANITY_REGEX, (match) => match[0] + "*".repeat(match.length - 1));
+}
+
 // ---------- live chat ----------
 
 function rpEscapeHtml(s) {
@@ -420,7 +436,7 @@ function initChat(code, deviceId) {
   closeBtn.addEventListener("click", () => panel.classList.remove("open"));
 
   function send() {
-    const text = input.value.trim().slice(0, 300);
+    const text = censorProfanity(input.value.trim().slice(0, 300));
     if (!text) return;
     input.value = "";
     db.collection("rooms").doc(code).get().then((snap) => {
