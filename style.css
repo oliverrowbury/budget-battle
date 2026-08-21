@@ -29,6 +29,7 @@ body {
   min-height: 100vh;
   font-family: var(--font-body);
   color: var(--text);
+  transition: opacity 0.22s ease;
   background:
     radial-gradient(ellipse 900px 600px at 50% -6%, rgba(124, 134, 255, 0.30), transparent 55%),
     radial-gradient(ellipse 700px 500px at 92% 8%, rgba(240, 180, 41, 0.20), transparent 55%),

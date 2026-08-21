@@ -32,6 +32,7 @@
       min-height: 100vh;
       font-family: var(--font-body);
       color: var(--text);
+      transition: opacity 0.22s ease;
       background:
         radial-gradient(ellipse 800px 500px at 50% -10%, rgba(124, 134, 255, 0.22), transparent 55%),
         radial-gradient(ellipse 600px 420px at 100% 10%, rgba(240, 180, 41, 0.14), transparent 55%),
@@ -356,6 +357,15 @@
       position: relative;
       text-align: center;
       padding: 10px 0 26px;
+    }
+
+    .up-for-bid.item-swap {
+      animation: itemSwapIn 0.4s ease;
+    }
+
+    @keyframes itemSwapIn {
+      0% { opacity: 0; transform: translateY(10px); }
+      100% { opacity: 1; transform: translateY(0); }
     }
 
     .up-for-bid .label {

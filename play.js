@@ -283,6 +283,7 @@ function runGame() {
     renderRosters();
     document.getElementById("item-name").textContent = item.name;
     document.getElementById("item-position").textContent = item.position || "";
+    pulseClass(document.querySelector(".up-for-bid"), "item-swap");
 
     if (auctionType === "open") {
       runOpenAuction(item, bidders, queueIndex);

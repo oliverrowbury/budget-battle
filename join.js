@@ -2,6 +2,11 @@ const codeInput = document.getElementById("code");
 const joinButton = document.querySelector(".join");
 const errorEl = document.getElementById("join-error");
 
+function goTo(url) {
+  if (typeof window.bidoffNavigate === "function") window.bidoffNavigate(url);
+  else window.location.href = url;
+}
+
 codeInput.addEventListener("input", () => {
   codeInput.value = codeInput.value.toUpperCase();
   errorEl.classList.add("hidden");
@@ -18,7 +23,7 @@ joinButton.addEventListener("click", async () => {
 
   try {
     await joinRoom(code);
-    window.location.href = `play.html?room=${code}`;
+    goTo(`play.html?room=${code}`);
   } catch (e) {
     joinButton.disabled = false;
     joinButton.textContent = "JOIN BIDOFF →";
@@ -92,7 +97,7 @@ randomBtn.addEventListener("click", () => {
     slots: cfg.slots,
   });
   if (code) params.set("code", code);
-  window.location.href = `play.html?${params.toString()}`;
+  goTo(`play.html?${params.toString()}`);
 });
 
 buildBrowseCategories();
@@ -128,7 +133,7 @@ async function joinPublicRoom(code, btnEl) {
   btnEl.textContent = "JOINING…";
   try {
     await joinRoom(code);
-    window.location.href = `play.html?room=${code}`;
+    goTo(`play.html?room=${code}`);
   } catch (e) {
     btnEl.disabled = false;
     btnEl.textContent = "JOIN";
