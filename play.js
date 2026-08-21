@@ -404,20 +404,22 @@ function runGame() {
       }
     }
 
-    // Budget/slots-aware heuristic. The AI has no idea which items are
-    // actually good (no "Magic Johnson is a legend" knowledge) so it plays
-    // it straight instead: contest almost everything it can afford (real
-    // drafters don't randomly hand over good picks), only back off when
-    // budget is genuinely tight relative to slots still needed, and never
-    // turn down a free pick. Ceiling still varies per item so it isn't
-    // mechanically identical every time.
+    // Budget/slots-aware heuristic, boosted by a real quality signal where
+    // one exists (see ai-value-tiers.js — currently NBA Current/All-Time;
+    // everything else falls back to tier 3/"average" for every item, i.e.
+    // the plain budget/slots behavior). A tier 1 pick gets a much higher
+    // spending ceiling and the AI won't proactively bail on it; a tier 4
+    // pick gets a lower ceiling and the AI is more willing to let it go.
     function aiTakeOpenTurn() {
       const current = active[turn % active.length];
       if (!current || !current.isAI) return;
+      const tier = typeof aiItemTier === "function" ? aiItemTier(gameKey, item.name) : 3;
+      const tierMult = { 1: 2.4, 2: 1.6, 3: 1.0, 4: 0.55 }[tier];
       const slotsLeft = Math.max(1, totalSlotsPerPlayer - current.roster.length);
       const perSlot = Math.max(1, Math.floor(current.budget / slotsLeft));
-      const ceiling = Math.max(1, Math.min(current.budget, Math.round(perSlot * (1.1 + Math.random() * 1.4))));
-      const budgetTight = current.budget <= slotsLeft; // averaging ~$1/slot left — real risk of going bust
+      const ceiling = Math.max(1, Math.min(current.budget, Math.round(perSlot * tierMult * (0.85 + Math.random() * 0.7))));
+      const budgetDesperate = current.budget <= slotsLeft; // averaging ~$1/slot left — real risk of going bust
+      const notWorthFighting = tier >= 3 && current.budget <= slotsLeft * 2 && Math.random() < (tier === 4 ? 0.45 : 0.15);
 
       if (currentBid === 0) {
         const openBid = Math.max(1, Math.min(current.budget, Math.round(ceiling * (0.2 + Math.random() * 0.4))));
@@ -429,7 +431,7 @@ function runGame() {
       if (currentBid + 1 <= ceiling && currentBid + 1 <= current.budget) {
         bidInput.value = currentBid + 1;
         onBid();
-      } else if (budgetTight && canOfferSkip() && Math.random() < 0.5) {
+      } else if ((budgetDesperate || notWorthFighting) && canOfferSkip()) {
         onOfferSkip();
       } else {
         onPass();
@@ -574,9 +576,11 @@ function runGame() {
         document.getElementById("pass-screen-hint").textContent = `${p.name} is deciding their bid…`;
         document.getElementById("blind-bid-controls").classList.add("hidden");
         setTimeout(() => {
+          const tier = typeof aiItemTier === "function" ? aiItemTier(gameKey, item.name) : 3;
+          const tierMult = { 1: 2.4, 2: 1.6, 3: 1.0, 4: 0.55 }[tier];
           const slotsLeft = Math.max(1, totalSlotsPerPlayer - p.roster.length);
           const perSlot = Math.max(1, Math.floor(p.budget / slotsLeft));
-          const val = Math.max(0, Math.min(p.budget, Math.round(perSlot * (0.6 + Math.random() * 1.0))));
+          const val = Math.max(0, Math.min(p.budget, Math.round(perSlot * tierMult * (0.6 + Math.random() * 1.0))));
           submitBid(val);
         }, 1100 + Math.random() * 1600);
         return;
