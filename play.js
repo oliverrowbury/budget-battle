@@ -1,5 +1,6 @@
 const params = new URLSearchParams(window.location.search);
 const roomCode = params.get("room");
+const isSpectator = params.get("spectate") === "1";
 const vsAI = params.get("ai") === "1";
 
 let gameKey = params.get("game");
@@ -34,7 +35,7 @@ function showError() {
 }
 
 if (roomCode) {
-  runRoomGame(roomCode.trim().toUpperCase());
+  runRoomGame(roomCode.trim().toUpperCase(), isSpectator);
 } else if (
   !gameKey || typeof gamePools === "undefined" || !gamePools[gameKey] ||
   !Number.isInteger(numPlayers) || numPlayers < 2 || numPlayers > 8 ||
