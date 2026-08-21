@@ -17,7 +17,7 @@ rules_version = '2';
 
 function isRoom(data) {
   return data.gameKey is string
-    && data.status in ["lobby", "playing", "finished"]
+    && data.status in ["lobby", "playing", "finished", "aborted"]
     && data.budget is number && data.budget >= 0
     && data.numPlayers is number && data.numPlayers >= 2 && data.numPlayers <= 8
     && data.players is list && data.players.size() <= 8

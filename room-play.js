@@ -395,6 +395,24 @@ async function rpSubmitBlindBid(code, room, myId, rawAmount) {
   });
 }
 
+// A left game can't continue — there's no rejoin flow, so leaving a
+// two-player (or any) room would otherwise strand everyone else staring at
+// a turn that will never come. Ending it for the whole room, clearly, is
+// better than a silent hang.
+async function rpLeaveGame(code, deviceId) {
+  const ref = db.collection("rooms").doc(code);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) return;
+    const room = snap.data();
+    if (room.status !== "lobby" && room.status !== "playing") return;
+    const me = room.players.find((p) => p.deviceId === deviceId);
+    const name = me ? me.name : "A player";
+    const log = [`${name} left — the BidOff has been ended for everyone.`, ...(room.log || [])].slice(0, 40);
+    tx.update(ref, { status: "aborted", round: null, log });
+  });
+}
+
 async function rpRename(code, myId, newName) {
   const ref = db.collection("rooms").doc(code);
   const trimmed = newName.trim().slice(0, 20) || `Player ${myId + 1}`;
@@ -538,6 +556,28 @@ function runRoomGame(code) {
 
   initChat(code, deviceId);
 
+  const backLink = document.querySelector("a.back");
+  if (backLink) {
+    backLink.addEventListener("click", (e) => {
+      const room = latestRoom;
+      if (!room || (room.status !== "lobby" && room.status !== "playing")) return; // nothing live to end
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      const href = backLink.getAttribute("href");
+      const goBack = () => {
+        if (typeof window.bidoffNavigate === "function") window.bidoffNavigate(href);
+        else window.location.href = href;
+      };
+      if (room.players.length <= 1) {
+        // Nobody else in the room yet — leaving doesn't strand anyone.
+        rpLeaveGame(code, deviceId).catch(() => {}).then(goBack);
+        return;
+      }
+      if (!confirm("Leaving now ends this BidOff for everyone still in it — they won't be able to continue. Leave anyway?")) return;
+      rpLeaveGame(code, deviceId).catch(() => {}).then(goBack);
+    });
+  }
+
   db.collection("rooms").doc(code).onSnapshot(
     (snap) => {
       if (!snap.exists) {
@@ -616,6 +656,13 @@ function runRoomGame(code) {
         finishedWired = true;
         if (typeof wireAiJudge === "function") wireAiJudge(room.gameKey, room.players);
       }
+    } else if (room.status === "aborted") {
+      lobbyView.classList.add("hidden");
+      gameView.classList.add("hidden");
+      resultsView.classList.add("hidden");
+      const abortedView = document.getElementById("aborted-view");
+      abortedView.classList.remove("hidden");
+      document.getElementById("aborted-msg").textContent = room.log[0] || "This BidOff was ended early — a player left.";
     }
   }
 
