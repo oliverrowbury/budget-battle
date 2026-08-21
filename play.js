@@ -356,7 +356,7 @@ function runGame() {
         if (responder.isAI) {
           hideAllControls();
           document.getElementById("turn-prompt").textContent = `${pendingSkip.offeredBy.name} offered a skip — ${responder.name} is deciding…`;
-          setTimeout(aiRespondToSkip, 650 + Math.random() * 500);
+          setTimeout(aiRespondToSkip, 900 + Math.random() * 1200);
           return;
         }
 
@@ -378,7 +378,7 @@ function runGame() {
       if (current.isAI) {
         hideAllControls();
         document.getElementById("turn-prompt").textContent = `${current.name} is thinking…`;
-        setTimeout(aiTakeOpenTurn, 650 + Math.random() * 500);
+        setTimeout(aiTakeOpenTurn, 1100 + Math.random() * 1600);
         return;
       }
 
@@ -404,27 +404,32 @@ function runGame() {
       }
     }
 
-    // Rough heuristic: spend roughly an even share of remaining budget per
-    // remaining slot, with some randomness so the AI doesn't feel robotic.
+    // Budget/slots-aware heuristic. The AI has no idea which items are
+    // actually good (no "Magic Johnson is a legend" knowledge) so it plays
+    // it straight instead: contest almost everything it can afford (real
+    // drafters don't randomly hand over good picks), only back off when
+    // budget is genuinely tight relative to slots still needed, and never
+    // turn down a free pick. Ceiling still varies per item so it isn't
+    // mechanically identical every time.
     function aiTakeOpenTurn() {
       const current = active[turn % active.length];
       if (!current || !current.isAI) return;
       const slotsLeft = Math.max(1, totalSlotsPerPlayer - current.roster.length);
       const perSlot = Math.max(1, Math.floor(current.budget / slotsLeft));
-      const ceiling = Math.max(1, Math.min(current.budget, Math.round(perSlot * (0.7 + Math.random() * 1.1))));
+      const ceiling = Math.max(1, Math.min(current.budget, Math.round(perSlot * (1.1 + Math.random() * 1.4))));
+      const budgetTight = current.budget <= slotsLeft; // averaging ~$1/slot left — real risk of going bust
 
       if (currentBid === 0) {
-        const openBid = Math.max(1, Math.min(current.budget, Math.round(ceiling * (0.15 + Math.random() * 0.35))));
+        const openBid = Math.max(1, Math.min(current.budget, Math.round(ceiling * (0.2 + Math.random() * 0.4))));
         bidInput.value = openBid;
         onBid();
         return;
       }
 
-      const wantsToRaise = Math.random() < 0.65;
-      if (wantsToRaise && currentBid + 1 <= ceiling && currentBid + 1 <= current.budget) {
+      if (currentBid + 1 <= ceiling && currentBid + 1 <= current.budget) {
         bidInput.value = currentBid + 1;
         onBid();
-      } else if (canOfferSkip() && Math.random() < 0.25) {
+      } else if (budgetTight && canOfferSkip() && Math.random() < 0.5) {
         onOfferSkip();
       } else {
         onPass();
@@ -435,9 +440,8 @@ function runGame() {
       if (!pendingSkip) return;
       const responder = pendingSkip.responderQueue[0];
       if (!responder || !responder.isAI) return;
-      const slotsLeft = totalSlotsPerPlayer - responder.roster.length;
-      const desperate = slotsLeft >= Math.ceil(totalSlotsPerPlayer * 0.4) && Math.random() < 0.4;
-      if (desperate) onTakeFree();
+      // A free pick toward a slot you still need is essentially always worth it.
+      if (Math.random() < 0.9) onTakeFree();
       else onAgreeSkip();
     }
 
@@ -572,9 +576,9 @@ function runGame() {
         setTimeout(() => {
           const slotsLeft = Math.max(1, totalSlotsPerPlayer - p.roster.length);
           const perSlot = Math.max(1, Math.floor(p.budget / slotsLeft));
-          const val = Math.max(0, Math.min(p.budget, Math.round(perSlot * (0.3 + Math.random() * 0.85))));
+          const val = Math.max(0, Math.min(p.budget, Math.round(perSlot * (0.6 + Math.random() * 1.0))));
           submitBid(val);
-        }, 650 + Math.random() * 500);
+        }, 1100 + Math.random() * 1600);
         return;
       }
 
