@@ -172,23 +172,15 @@ const aiValueTiers = {
   },
   "F1 — Current": {
     tier1: ["Max Verstappen", "Lewis Hamilton", "Lando Norris", "Charles Leclerc", "Oscar Piastri", "George Russell"],
-    tier4: ["Arvid Lindblad", "Gabriel Bortoleto", "Franco Colapinto"],
   },
   "F1 — All-Time": {
     tier1: [
       "Michael Schumacher", "Lewis Hamilton", "Ayrton Senna", "Alain Prost", "Sebastian Vettel",
       "Max Verstappen", "Juan Manuel Fangio", "Niki Lauda",
     ],
-    tier4: [
-      "Vittorio Brambilla", "Tom Pryce", "Ludovico Scarfiotti", "Piero Taruffi", "Luigi Fagioli",
-    ],
   },
   "Tennis — Current": {
     tier1: ["Jannik Sinner", "Carlos Alcaraz", "Novak Djokovic", "Iga Świątek", "Aryna Sabalenka", "Coco Gauff"],
-    tier4: [
-      "Zhang Zhizhen", "Roman Safiullin", "Yannick Hanfmann", "Aleksandar Vukic",
-      "Magda Linette", "Peyton Stearns",
-    ],
   },
   "Tennis — All-Time": {
     tier1: [
@@ -300,7 +292,7 @@ const aiValueTiers = {
     tier1: [
       "Shohei Ohtani", "Aaron Judge", "Mookie Betts", "Juan Soto", "Bobby Witt Jr.",
       "Ronald Acuña Jr.", "Freddie Freeman", "Gunnar Henderson", "Paul Skenes",
-      "Gerrit Cole", "Zack Wheeler", "Corbin Burnes", "José Ramírez",
+      "Gerrit Cole", "Corbin Burnes", "José Ramírez",
     ],
   },
   "MLB — All-Time": {
@@ -351,8 +343,8 @@ const aiValueTiers = {
   },
   "Athletics — Current": {
     tier1: [
-      "Noah Lyles", "Mondo Duplantis", "Armand Duplantis", "Sydney McLaughlin-Levrone",
-      "Sydney McLaughlin", "Faith Kipyegon", "Sha'Carri Richardson", "Karsten Warholm",
+      "Noah Lyles", "Mondo Duplantis", "Sydney McLaughlin-Levrone",
+      "Faith Kipyegon", "Sha'Carri Richardson", "Karsten Warholm",
     ],
   },
   "Athletics — All-Time": {
@@ -363,7 +355,7 @@ const aiValueTiers = {
     ],
   },
   "MotoGP — Current": {
-    tier1: ["Jorge Martín", "Francesco Bagnaia", "Pecco Bagnaia", "Marc Márquez", "Fabio Quartararo"],
+    tier1: ["Jorge Martín", "Francesco Bagnaia", "Marc Márquez", "Fabio Quartararo"],
   },
   "MotoGP — All-Time": {
     tier1: [
