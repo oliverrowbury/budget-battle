@@ -10,6 +10,35 @@ function rpClone(obj) {
   return obj ? JSON.parse(JSON.stringify(obj)) : obj;
 }
 
+// Custom in-page confirm dialog instead of the browser's native confirm() -
+// on iOS home-screen/PWA installs, confirm()/alert() are known to silently
+// no-op on some versions (no popup, immediately resolves falsy), which made
+// "leave ends the game" look like it did nothing at all when tapped.
+function rpConfirm(text) {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById("confirm-overlay");
+    const textEl = document.getElementById("confirm-text");
+    const okBtn = document.getElementById("confirm-ok-btn");
+    const cancelBtn = document.getElementById("confirm-cancel-btn");
+    if (!overlay || !textEl || !okBtn || !cancelBtn) { resolve(window.confirm(text)); return; }
+
+    textEl.textContent = text;
+    overlay.classList.remove("hidden");
+
+    function cleanup(result) {
+      overlay.classList.add("hidden");
+      okBtn.removeEventListener("click", onOk);
+      cancelBtn.removeEventListener("click", onCancel);
+      resolve(result);
+    }
+    function onOk() { cleanup(true); }
+    function onCancel() { cleanup(false); }
+
+    okBtn.addEventListener("click", onOk);
+    cancelBtn.addEventListener("click", onCancel);
+  });
+}
+
 // Retriggers a CSS animation by toggling the class off then back on.
 function rpPulseClass(el, className) {
   if (!el) return;
@@ -624,8 +653,10 @@ function runRoomGame(code, isSpectator) {
         rpLeaveGame(code, deviceId).catch(() => {}).then(goBack);
         return;
       }
-      if (!confirm("Leaving now ends this BidOff for everyone still in it — they won't be able to continue. Leave anyway?")) return;
-      rpLeaveGame(code, deviceId).catch(() => {}).then(goBack);
+      rpConfirm("Leaving now ends this BidOff for everyone still in it — they won't be able to continue. Leave anyway?").then((ok) => {
+        if (!ok) return;
+        rpLeaveGame(code, deviceId).catch(() => {}).then(goBack);
+      });
     });
   }
 
