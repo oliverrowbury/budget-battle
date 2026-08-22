@@ -306,7 +306,11 @@ async function rpSubmitOpenPass(code, _staleRoom, myId, deviceId) {
     const r = room.round;
     if (!r || r.type !== "open" || r.pendingSkip || r.activeIds[r.turnIndex] !== myId) return;
     if (!rpControlledIds(room, deviceId).includes(myId)) return;
-    if (r.currentBid <= 0) return; // nothing to decline outbidding yet
+    // Normally you can't pass before anyone's bid - nothing to decline yet.
+    // But a solo bidder (everyone else broke/full/ineligible) has no one to
+    // NOT outbid, so without this they'd be stuck buying every item left
+    // just because there's nobody around to bid against.
+    if (r.currentBid <= 0 && r.activeIds.length > 1) return;
 
     const newActiveIds = r.activeIds.filter((id) => id !== myId);
 
@@ -930,7 +934,10 @@ function runRoomGame(code, isSpectator) {
 
         const offerable = currentPlayer && rpCanOfferSkip(room, r, currentPlayer.id);
         const gift = rpGiftCandidate(room, r);
-        const canPass = r.currentBid > 0;
+        // Solo bidder can always pass, even before bidding — otherwise once
+        // the other player's broke or full, they're stuck buying everything
+        // left just because nobody's around to actually bid against.
+        const canPass = r.currentBid > 0 || r.activeIds.length === 1;
         const options = [canPass ? "pass" : null, offerable ? "offer a skip" : null, gift ? `give it to ${gift.name}` : null].filter(Boolean).join(" or ");
 
         document.getElementById("current-bid-amount").textContent = `$${r.currentBid}`;
@@ -1062,7 +1069,7 @@ function runRoomGame(code, isSpectator) {
         document.getElementById("pass-screen-label").textContent = actingPlayer && actingPlayer.deviceId !== deviceId ? "Pass the device to" : "Your secret bid";
         document.getElementById("pass-player-name").textContent = actingPlayer ? actingPlayer.name : "";
         document.getElementById("pass-screen-hint").textContent = soloRound
-          ? "Nobody else can use this one right now (position filled, roster full, or broke) — no competition, just set your price."
+          ? "Nobody else can use this one right now (position filled, roster full, or broke) — no competition, so set your price, or enter $0 to skip it and move on."
           : `${submittedCount}/${r.bidderIds.length} players have locked in a bid.`;
 
         if (iAmBidder && !iHaveSubmitted) {

@@ -386,7 +386,10 @@ function runGame() {
 
       showAllControls();
       bidInput.classList.remove("hidden");
-      const canPass = currentBid > 0;
+      // Solo bidder can always pass, even before bidding — otherwise once
+      // the other player's broke or full, they're stuck buying everything
+      // left just because nobody's around to actually bid against.
+      const canPass = currentBid > 0 || active.length === 1;
       passBtn.classList.toggle("hidden", !canPass);
       placeBidBtn.textContent = "Place Bid";
       passBtn.textContent = "Pass";
@@ -477,7 +480,7 @@ function runGame() {
     }
 
     function onPass() {
-      if (currentBid <= 0) return;
+      if (currentBid <= 0 && active.length > 1) return;
       const current = active[turn % active.length];
       active = active.filter((p) => p.id !== current.id);
       if (active.length > 0) turn = turn % active.length;
@@ -590,7 +593,7 @@ function runGame() {
 
       document.getElementById("pass-screen-label").textContent = "Pass the device to";
       document.getElementById("pass-screen-hint").textContent = bidders.length === 1
-        ? "Nobody else can use this one right now (position filled, roster full, or broke) — no competition, just set your price."
+        ? "Nobody else can use this one right now (position filled, roster full, or broke) — no competition, so set your price, or enter $0 to skip it and move on."
         : "Everyone else look away — enter your secret bid.";
       document.getElementById("blind-bid-controls").classList.remove("hidden");
       input.value = 0;
