@@ -71,6 +71,7 @@ const bidoffCategories = {
       "🌴 Perfect Life", "Video Games", "Mobile Games", "All-Time Games", "🐾 Animals",
       "Build a 5-Course Meal", "Countries", "Build a Country", "Funniest Squad",
       "Survival Apocalypse", "Weirdest Team", "Build a Garage", "YouTubers",
+      "TikTok Icons", "Build Your Aesthetic", "Podcasters",
     ],
   },
 };
