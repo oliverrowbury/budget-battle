@@ -395,10 +395,8 @@ const aiValueTiers = {
   },
   "Build a Movie": {
     tier1: [
-      "Steven Spielberg", "Martin Scorsese", "Christopher Nolan", "Quentin Tarantino",
-      "Alfred Hitchcock", "Stanley Kubrick", "Francis Ford Coppola", "Hayao Miyazaki",
       "Meryl Streep", "Denzel Washington", "Leonardo DiCaprio", "Tom Hanks",
-      "Hans Zimmer", "John Williams",
+      "Won Best Picture", "Instant Cult Classic", "Blockbuster $200M+ Budget",
     ],
   },
   "US Rap Songs": {
