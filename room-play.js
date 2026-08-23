@@ -919,6 +919,7 @@ function runRoomGame(code, isSpectator) {
           ? `${offerer.name} wants to skip this item — agree, or take it free?`
           : `Waiting for ${responder.name} to agree to skip or take it free…`;
 
+        document.getElementById("open-bid-controls").classList.toggle("hidden", !isMyTurn);
         bidInput.classList.add("hidden");
         passBtn.classList.add("hidden");
         skipBtn.classList.remove("hidden");
@@ -949,6 +950,7 @@ function runRoomGame(code, isSpectator) {
             ? `Your turn to bid${options ? `, ${options}` : ""}`
             : `${currentPlayer.name}'s turn — pass the device, then bid${options ? `, ${options}` : ""}`;
 
+        document.getElementById("open-bid-controls").classList.toggle("hidden", !isMyTurn);
         bidInput.classList.remove("hidden");
         placeBidBtn.textContent = "Place Bid";
         passBtn.textContent = "Pass";
