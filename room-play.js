@@ -39,6 +39,64 @@ function rpConfirm(text) {
   });
 }
 
+// Spinning wheel for blind-bid ties - a tie used to just silently resolve to
+// whichever tied bidder happened to be checked first, with no indication
+// anything random even happened. Used by both online room-play (via
+// rpSubmitBlindBid's resolved.tiedIds) and local pass-and-play/vs-AI
+// (play.js's reveal()). names[winnerIndex] is the pre-decided winner - the
+// spin is just a visual reveal of a result already chosen, not a live
+// random draw, so every device/player sees the same outcome.
+function rpSpinWheel(names, winnerIndex, resultText, durationMs) {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById("tie-wheel-overlay");
+    const wheel = document.getElementById("tie-wheel");
+    const resultEl = document.getElementById("tie-wheel-result");
+    if (!overlay || !wheel || !resultEl || names.length < 2) { resolve(); return; }
+
+    const n = names.length;
+    const segAngle = 360 / n;
+    const colors = ["#f0b429", "#7c5cff", "#2ed573", "#ff4757", "#3ddcff", "#ff884d"];
+    wheel.style.background = "conic-gradient(" +
+      names.map((_, i) => `${colors[i % colors.length]} ${i * segAngle}deg ${(i + 1) * segAngle}deg`).join(", ") +
+      ")";
+    wheel.innerHTML = names.map((name, i) => {
+      const mid = i * segAngle + segAngle / 2;
+      return `<div class="wheel-label" style="transform: rotate(${mid}deg);"><span>${rpEscapeHtml(name)}</span></div>`;
+    }).join("");
+
+    overlay.classList.remove("hidden");
+    resultEl.classList.add("hidden");
+    resultEl.textContent = "";
+    wheel.style.transition = "none";
+    wheel.style.transform = "rotate(0deg)";
+    void wheel.offsetWidth; // force reflow so the transition below actually animates
+
+    // Pointer is fixed at 0deg (12 o'clock). Rotate the wheel several full
+    // turns plus whatever's needed to bring the winning segment's middle
+    // up to the pointer, with a little jitter so it doesn't always stop
+    // dead-center of the segment.
+    const mid = winnerIndex * segAngle + segAngle / 2;
+    const jitter = (Math.random() - 0.5) * segAngle * 0.6;
+    const spins = 5;
+    const target = spins * 360 + (360 - mid + jitter);
+
+    requestAnimationFrame(() => {
+      wheel.style.transition = `transform ${durationMs}ms cubic-bezier(0.12, 0.75, 0.18, 1)`;
+      wheel.style.transform = `rotate(${target}deg)`;
+    });
+
+    setTimeout(() => {
+      resultEl.textContent = resultText;
+      resultEl.classList.remove("hidden");
+    }, Math.round(durationMs * 0.92));
+
+    setTimeout(() => {
+      overlay.classList.add("hidden");
+      resolve();
+    }, durationMs + 900);
+  });
+}
+
 // Retriggers a CSS animation by toggling the class off then back on.
 function rpPulseClass(el, className) {
   if (!el) return;
@@ -422,19 +480,24 @@ async function rpSubmitBlindBid(code, room, myId, rawAmount, deviceId) {
       return;
     }
 
-    let winnerId = null;
     let winnerAmount = 0;
     r.bidderIds.forEach((id) => {
       const amt = newBids[id];
-      if (amt > 0 && amt > winnerAmount) { winnerAmount = amt; winnerId = id; }
+      if (amt > 0 && amt > winnerAmount) winnerAmount = amt;
     });
+    // Everyone tied at the top amount - previously the first one checked
+    // silently won, no randomness, no sign anything was even close. Now
+    // pick randomly among them and hand the tied list to the client so it
+    // can show a spinning wheel instead of a silent pick.
+    const tiedIds = winnerAmount > 0 ? r.bidderIds.filter((id) => newBids[id] === winnerAmount) : [];
+    const winnerId = tiedIds.length > 0 ? tiedIds[Math.floor(Math.random() * tiedIds.length)] : null;
 
     const bidLines = r.bidderIds
       .map((id) => `${freshRoom.players.find((p) => p.id === id).name}: $${newBids[id]}`)
       .join(", ");
 
     const logText = winnerId != null
-      ? `Bids — ${bidLines} · ${freshRoom.players.find((p) => p.id === winnerId).name} won ${r.item.name} for $${winnerAmount}`
+      ? `Bids — ${bidLines} · ${freshRoom.players.find((p) => p.id === winnerId).name} won ${r.item.name} for $${winnerAmount}${tiedIds.length > 1 ? " (tie, won on the spin)" : ""}`
       : `Bids — ${bidLines} · ${r.item.name} went unsold`;
 
     // Don't jump straight to the next item - hold on the reveal (everyone's
@@ -442,7 +505,7 @@ async function rpSubmitBlindBid(code, room, myId, rawAmount, deviceId) {
     // and it's unclear who actually won. rpAdvanceBlindReveal does the
     // actual transition after a client-side delay.
     tx.update(ref, {
-      round: { ...r, bids: newBids, resolved: { winnerId, winnerAmount, bidLines, logText } },
+      round: { ...r, bids: newBids, resolved: { winnerId, winnerAmount, bidLines, logText, tiedIds: tiedIds.length > 1 ? tiedIds : null } },
       updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
   });
@@ -654,6 +717,8 @@ function runRoomGame(code, isSpectator) {
   let blindListenersBound = false;
   let autoStepTimer = null;
   let blindRevealTimer = null;
+  let wheelStartedForItem = null;
+  let wheelDoneForItem = null;
   let finishedWired = false;
   let lastCurrentBid = null;
   let lastBidItemIndex = null;
@@ -1070,8 +1135,30 @@ function runRoomGame(code, isSpectator) {
       if (r.resolved) {
         // Hold on the reveal instead of cutting straight to the next item -
         // everyone gets to see who bid what and who actually won.
-        const { winnerId, winnerAmount } = r.resolved;
+        const { winnerId, winnerAmount, tiedIds } = r.resolved;
         const winner = winnerId != null ? room.players.find((p) => p.id === winnerId) : null;
+
+        blindControls.classList.add("hidden");
+        waitMsg.classList.add("hidden");
+
+        const isTie = tiedIds && tiedIds.length > 1;
+        if (isTie && wheelDoneForItem !== r.itemIndex) {
+          document.getElementById("pass-screen-label").textContent = "It's a tie!";
+          document.getElementById("pass-player-name").textContent = "";
+          const tiedNames = tiedIds.map((id) => (room.players.find((p) => p.id === id) || {}).name || "?");
+          document.getElementById("pass-screen-hint").textContent = `Tied at $${winnerAmount} between ${tiedNames.join(", ")} — spinning to decide…`;
+          revealList.classList.add("hidden");
+
+          if (wheelStartedForItem !== r.itemIndex) {
+            wheelStartedForItem = r.itemIndex;
+            const winnerIdxInTied = tiedIds.indexOf(winnerId);
+            rpSpinWheel(tiedNames, winnerIdxInTied, `${winner.name} wins the spin — $${winnerAmount}!`, 4200).then(() => {
+              wheelDoneForItem = r.itemIndex;
+              render(latestRoom, latestRoom.players.find((p) => p.deviceId === deviceId) || null);
+            });
+          }
+          return;
+        }
 
         document.getElementById("pass-screen-label").textContent = "Bids revealed!";
         document.getElementById("pass-player-name").textContent = "";
@@ -1090,14 +1177,11 @@ function runRoomGame(code, isSpectator) {
           </li>`;
         }).join("");
 
-        blindControls.classList.add("hidden");
-        waitMsg.classList.add("hidden");
-
         if (!blindRevealTimer) {
           blindRevealTimer = setTimeout(() => {
             blindRevealTimer = null;
             rpAdvanceBlindReveal(code);
-          }, 2600);
+          }, isTie ? 1400 : 2600);
         }
       } else {
         revealList.classList.add("hidden");
