@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Privacy — BidOff</title>
+  <meta name="description" content="What BidOff stores, why, and how long it sticks around.">
+  <meta property="og:title" content="Privacy — BidOff">
+  <meta property="og:description" content="What BidOff stores, why, and how long it sticks around.">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔨</text></svg>">
+
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .privacy-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 32px clamp(20px, 5vw, 44px);
+      margin: 40px auto 0;
+      max-width: 720px;
+    }
+
+    .privacy-card h1 {
+      font-family: var(--font-display);
+      font-size: clamp(24px, 4vw, 32px);
+      margin: 0 0 6px;
+    }
+
+    .privacy-card .subtitle {
+      color: var(--muted);
+      font-size: 14px;
+      margin: 0 0 28px;
+    }
+
+    .privacy-card h2 {
+      font-family: var(--font-display);
+      font-size: 17px;
+      margin: 28px 0 8px;
+      color: var(--gold);
+    }
+
+    .privacy-card p, .privacy-card li {
+      color: var(--text);
+      line-height: 1.6;
+      font-size: 14.5px;
+    }
+
+    .privacy-card ul {
+      margin: 8px 0;
+      padding-left: 20px;
+    }
+
+    .privacy-card a {
+      color: var(--accent);
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 28px;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    .back-link:hover {
+      color: var(--text);
+    }
+  </style>
+</head>
+
+<body>
+
+  <script src="background.js"></script>
+
+  <main class="page">
+    <div class="content">
+      <div class="privacy-card">
+        <h1>Privacy</h1>
+        <p class="subtitle">The short version: there's no account, no ads, and nothing sold. Here's exactly what's stored and why.</p>
+
+        <h2>No login, no account</h2>
+        <p>BidOff doesn't have accounts or passwords. The first time you open it, your browser generates a random ID and saves it in <code>localStorage</code> on your own device. That ID is how the game recognizes "this is still you" if you refresh the page — it isn't tied to your name, email, or anything else, and it never leaves your device except to say "this player's turn belongs to this ID" inside the room you're playing in.</p>
+
+        <h2>What a room stores</h2>
+        <p>While a game is live, its room holds:</p>
+        <ul>
+          <li>The display name you type in (anyone can type anything — it's not verified)</li>
+          <li>The bids, picks, and roster your name ends up with</li>
+          <li>Any messages sent in that room's live chat, visible to everyone else in the room</li>
+        </ul>
+        <p>This is all stored in a Firestore database and is readable by anyone who has (or guesses) the room code — the same way anyone with a Google Doc's link can open it. There's no way to browse other people's rooms without their code.</p>
+
+        <h2>Chat</h2>
+        <p>Chat messages are auto-censored for common profanity before they're sent, but this is a simple word filter, not moderation — don't post anything you wouldn't want the other people in your room to see.</p>
+
+        <h2>How long it sticks around</h2>
+        <p>A finished or abandoned room is automatically deleted a few days after the last activity in it. Nothing is kept indefinitely.</p>
+
+        <h2>What's not collected</h2>
+        <p>No analytics trackers, no ad networks, no cookies beyond what's needed to run the game, no selling or sharing of anything with third parties.</p>
+
+        <a class="back-link" href="index.html">← Back to BidOff</a>
+      </div>
+    </div>
+  </main>
+
+</body>
+</html>
