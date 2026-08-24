@@ -1,5 +1,8 @@
 const functions = require("firebase-functions");
 const { defineSecret } = require("firebase-functions/params");
+const admin = require("firebase-admin");
+
+admin.initializeApp();
 
 const ANTHROPIC_API_KEY = defineSecret("ANTHROPIC_API_KEY");
 
@@ -78,3 +81,33 @@ Reply with ONLY a JSON object, no other text, no markdown fences: {"winner": "<e
       res.status(500).json({ error: "Internal error" });
     }
   });
+
+// Room documents are never deleted client-side (firestore.rules blocks it
+// outright, since there's no auth to check who's allowed to delete what) -
+// admin access here bypasses that rule, which is the point: this is the
+// one place cleanup is allowed to happen. Without it every game ever
+// played would sit in Firestore forever. The public room list already
+// treats anything untouched for 3+ hours as dead (join.js's
+// STALE_ROOM_MS), so 3 days is a generous safety margin past that before
+// actually deleting anything.
+const ROOM_MAX_AGE_MS = 3 * 24 * 60 * 60 * 1000;
+
+exports.cleanupOldRooms = functions.pubsub.schedule("every 24 hours").onRun(async () => {
+  const db = admin.firestore();
+  const cutoff = admin.firestore.Timestamp.fromMillis(Date.now() - ROOM_MAX_AGE_MS);
+  const snap = await db.collection("rooms").where("updatedAt", "<", cutoff).get();
+
+  if (snap.empty) return null;
+
+  // Firestore batches cap at 500 writes - chunk in case a backlog ever
+  // builds up (e.g. this ran disabled for a while).
+  const docs = snap.docs;
+  for (let i = 0; i < docs.length; i += 500) {
+    const batch = db.batch();
+    docs.slice(i, i + 500).forEach((doc) => batch.delete(doc.ref));
+    await batch.commit();
+  }
+
+  console.log(`cleanupOldRooms: deleted ${docs.length} room(s) untouched for ${ROOM_MAX_AGE_MS / 86400000}+ days`);
+  return null;
+});

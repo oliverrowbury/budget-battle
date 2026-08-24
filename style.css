@@ -471,6 +471,15 @@ button {
   font-size: 12px;
 }
 
+.footer a {
+  color: #4f5667;
+  text-decoration: underline;
+}
+
+.footer a:hover {
+  color: #8d96ad;
+}
+
 /* Mobile */
 
 @media (max-width: 700px) {
