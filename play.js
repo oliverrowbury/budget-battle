@@ -233,7 +233,8 @@ function runGame() {
     gameView.classList.add("hidden");
     resultsView.classList.remove("hidden");
     renderFinalRosters();
-    if (typeof wireAiJudge === "function") wireAiJudge(gameKey, players);
+    // AI Judge is switched off for now (ai-judge.js/backend still exist,
+    // just not wired up from here) - see room-play.js for the matching spot.
   }
 
   function allRostersFull() {

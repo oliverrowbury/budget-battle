@@ -719,7 +719,6 @@ function runRoomGame(code, isSpectator) {
   let blindRevealTimer = null;
   let wheelStartedForItem = null;
   let wheelDoneForItem = null;
-  let finishedWired = false;
   let lastCurrentBid = null;
   let lastBidItemIndex = null;
   let lastLogFirst = null;
@@ -863,10 +862,8 @@ function runRoomGame(code, isSpectator) {
       gameView.classList.add("hidden");
       resultsView.classList.remove("hidden");
       renderFinalRosters(room);
-      if (!finishedWired) {
-        finishedWired = true;
-        if (typeof wireAiJudge === "function") wireAiJudge(room.gameKey, room.players);
-      }
+      // AI Judge is switched off for now (ai-judge.js/backend still exist,
+      // just not wired up from here) - see play.js for the matching spot.
     } else if (room.status === "aborted") {
       lobbyView.classList.add("hidden");
       gameView.classList.add("hidden");
