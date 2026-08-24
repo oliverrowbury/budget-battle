@@ -482,6 +482,34 @@ async function rpLeaveGame(code, deviceId) {
   });
 }
 
+// A player who just closes the tab, backgrounds the app, or loses signal
+// never triggers rpLeaveGame - the "← Back" confirm only fires if they
+// actually tap it. Without some independent signal, everyone else just
+// stares at a turn that silently never comes, with no way to tell "they're
+// thinking" from "they're gone". Each active tab pings its own lastSeen
+// while visible; other clients treat a stale ping as "may be away".
+const PRESENCE_HEARTBEAT_MS = 15000;
+const PRESENCE_STALE_MS = 40000;
+
+async function rpHeartbeat(code, deviceId) {
+  const ref = db.collection("rooms").doc(code);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) return;
+    const room = snap.data();
+    if (room.status !== "lobby" && room.status !== "playing") return;
+    if (!room.players.some((p) => p.deviceId === deviceId)) return;
+    const players = room.players.map((p) => (p.deviceId === deviceId ? { ...p, lastSeen: Date.now() } : p));
+    tx.update(ref, { players });
+  });
+}
+
+function rpIsAway(p, deviceId) {
+  // Never mine, and never flagged before we've heard from them once.
+  if (!p || p.deviceId === deviceId || !p.lastSeen) return false;
+  return Date.now() - p.lastSeen > PRESENCE_STALE_MS;
+}
+
 async function rpRename(code, myId, newName, deviceId) {
   const ref = db.collection("rooms").doc(code);
   const trimmed = censorProfanity(newName.trim().slice(0, 20)) || `Player ${myId + 1}`;
@@ -637,6 +665,22 @@ function runRoomGame(code, isSpectator) {
   document.getElementById("lobby-copy-hint").textContent = "Share this room code so friends can join on their own phone — or just hit Start and pass this device around for anyone who isn't on their own device.";
 
   initChat(code, deviceId);
+
+  if (!isSpectator) {
+    const sendHeartbeat = () => {
+      if (document.visibilityState === "visible") rpHeartbeat(code, deviceId).catch(() => {});
+    };
+    sendHeartbeat();
+    setInterval(sendHeartbeat, PRESENCE_HEARTBEAT_MS);
+    document.addEventListener("visibilitychange", sendHeartbeat);
+  }
+
+  // Staleness is time-based, not event-based - a snapshot won't re-fire just
+  // because a minute passed, so re-render periodically to flip the presence
+  // dot from green to red once someone goes quiet.
+  setInterval(() => {
+    if (latestRoom && latestRoom.status === "playing") render(latestRoom, latestRoom.players.find((p) => p.deviceId === deviceId) || null);
+  }, 7000);
 
   const backLink = document.querySelector("a.back");
   if (backLink) {
@@ -823,13 +867,16 @@ function runRoomGame(code, isSpectator) {
     const activeId = room.round && room.round.type === "open" ? room.round.activeIds[room.round.turnIndex] : null;
     board.innerHTML = room.players.map((p) => {
       const pct = Math.min(100, Math.round((p.roster.length / room.totalSlotsPerPlayer) * 100));
+      const away = rpIsAway(p, deviceId);
       return `
-      <div class="player-chip${p.id === activeId ? " active" : ""}">
+      <div class="player-chip${p.id === activeId ? " active" : ""}${away ? " away" : ""}">
+        ${p.deviceId !== deviceId ? `<div class="presence" title="${away ? "May be away" : "Active"}"></div>` : ""}
         <div class="avatar">${rpEscapeHtml(p.name.trim().charAt(0).toUpperCase() || "?")}</div>
         <div class="name">${rpEscapeHtml(p.name)}${p.deviceId === deviceId ? " (you)" : ""}</div>
         <div class="budget">${p.budget}</div>
         <div class="roster-bar"><div class="roster-bar-fill" style="width:${pct}%"></div></div>
         <div class="roster-count">${p.roster.length}/${room.totalSlotsPerPlayer} picked</div>
+        ${away ? `<div class="away-tag">may be away</div>` : ""}
       </div>
     `;
     }).join("");
@@ -945,7 +992,7 @@ function runRoomGame(code, isSpectator) {
         const leader = r.currentLeaderId != null ? room.players.find((p) => p.id === r.currentLeaderId) : null;
         document.getElementById("current-bid-leader").textContent = leader ? `(${leader.name})` : "";
         document.getElementById("turn-prompt").textContent = !isMyTurn
-          ? `Waiting for ${currentPlayer ? currentPlayer.name : "…"} to bid`
+          ? `Waiting for ${currentPlayer ? currentPlayer.name : "…"} to bid${currentPlayer && rpIsAway(currentPlayer, deviceId) ? " — they may be away, still waiting on them" : ""}`
           : isOwnDevice
             ? `Your turn to bid${options ? `, ${options}` : ""}`
             : `${currentPlayer.name}'s turn — pass the device, then bid${options ? `, ${options}` : ""}`;
@@ -1087,11 +1134,16 @@ function runRoomGame(code, isSpectator) {
           waitMsg.classList.remove("hidden");
           const controlledBidders = r.bidderIds.filter((id) => myControlled.includes(id));
           const haveLockedIn = controlledBidders.length > 0;
+          const outstandingIds = r.bidderIds.filter((id) => r.bids[id] === null || r.bids[id] === undefined);
+          const awayOutstanding = outstandingIds
+            .map((id) => room.players.find((p) => p.id === id))
+            .filter((p) => p && rpIsAway(p, deviceId));
+          const awayHint = awayOutstanding.length > 0 ? ` (${awayOutstanding.map((p) => p.name).join(", ")} may be away)` : "";
           waitMsg.textContent = soloRound
             ? `Only ${actingPlayer ? actingPlayer.name : "the other player"} can use this one — nothing to do here, it'll move on automatically.`
             : haveLockedIn
-              ? "Your bid is locked in — waiting for everyone else…"
-              : "Waiting for bidders to lock in their bids…";
+              ? `Your bid is locked in — waiting for everyone else…${awayHint}`
+              : `Waiting for bidders to lock in their bids…${awayHint}`;
         }
       }
 
