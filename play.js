@@ -122,6 +122,11 @@ function runGame() {
       needs: clone(slotRequirement),
       capsRemaining: clone(caps),
       isAI,
+      // Fixed per-bot personality (set once, not re-rolled every bid) so
+      // each AI values items consistently across a game instead of
+      // fluctuating turn to turn, and so two AIs facing the same item don't
+      // land on near-identical numbers as often.
+      aggression: isAI ? 0.8 + Math.random() * 0.5 : 1,
     });
   }
 
@@ -319,6 +324,27 @@ function runGame() {
     let turn = 0;
     let pendingSkip = null; // { offeredBy, responderQueue: [players] }
 
+    // An AI's max willingness to pay for THIS item, decided once and then
+    // held - previously this was re-rolled with fresh randomness on every
+    // single turn, so the same bot could happily raise a bid to $40 and
+    // then refuse a $41 counter a moment later just because the dice came
+    // up differently that turn. Computed lazily (budget/roster don't change
+    // for a player mid-item, only at resolution) and cached per player id.
+    const aiCeilingCache = {};
+    function aiCeilingFor(current) {
+      if (aiCeilingCache[current.id] !== undefined) return aiCeilingCache[current.id];
+      const tier = typeof aiItemTier === "function" ? aiItemTier(gameKey, item.name) : 3;
+      const tierMult = { 1: 2.4, 2: 1.6, 3: 1.0, 4: 0.55 }[tier];
+      const slotsLeft = Math.max(1, totalSlotsPerPlayer - current.roster.length);
+      const perSlot = Math.max(1, Math.floor(current.budget / slotsLeft));
+      const ceiling = Math.max(1, Math.min(
+        current.budget,
+        Math.round(perSlot * tierMult * current.aggression * (0.85 + Math.random() * 0.7))
+      ));
+      aiCeilingCache[current.id] = { ceiling, tier, slotsLeft };
+      return aiCeilingCache[current.id];
+    }
+
     const bidInput = document.getElementById("bid-input");
     const placeBidBtn = document.getElementById("place-bid-btn");
     const passBtn = document.getElementById("pass-btn");
@@ -418,11 +444,7 @@ function runGame() {
     function aiTakeOpenTurn() {
       const current = active[turn % active.length];
       if (!current || !current.isAI) return;
-      const tier = typeof aiItemTier === "function" ? aiItemTier(gameKey, item.name) : 3;
-      const tierMult = { 1: 2.4, 2: 1.6, 3: 1.0, 4: 0.55 }[tier];
-      const slotsLeft = Math.max(1, totalSlotsPerPlayer - current.roster.length);
-      const perSlot = Math.max(1, Math.floor(current.budget / slotsLeft));
-      const ceiling = Math.max(1, Math.min(current.budget, Math.round(perSlot * tierMult * (0.85 + Math.random() * 0.7))));
+      const { ceiling, tier, slotsLeft } = aiCeilingFor(current);
       const budgetDesperate = current.budget <= slotsLeft; // averaging ~$1/slot left — real risk of going bust
       const notWorthFighting = tier >= 3 && current.budget <= slotsLeft * 2 && Math.random() < (tier === 4 ? 0.45 : 0.15);
 
@@ -585,7 +607,12 @@ function runGame() {
           const tierMult = { 1: 2.4, 2: 1.6, 3: 1.0, 4: 0.55 }[tier];
           const slotsLeft = Math.max(1, totalSlotsPerPlayer - p.roster.length);
           const perSlot = Math.max(1, Math.floor(p.budget / slotsLeft));
-          const val = Math.max(0, Math.min(p.budget, Math.round(perSlot * tierMult * (0.6 + Math.random() * 1.0))));
+          // Most of the spread between two AIs now comes from their fixed
+          // per-bot aggression (set once at game start) rather than fresh
+          // randomness every bid — before this, two bots with the same
+          // budget/roster/tier were drawing from the exact same range and
+          // regularly landed on the same dollar figure.
+          const val = Math.max(0, Math.min(p.budget, Math.round(perSlot * tierMult * p.aggression * (0.75 + Math.random() * 0.5))));
           submitBid(val);
         }, 1100 + Math.random() * 1600);
         return;
@@ -605,10 +632,14 @@ function runGame() {
     }
 
     function reveal() {
-      let winningBid = null;
-      bids.forEach((b) => {
-        if (b.amount > 0 && (!winningBid || b.amount > winningBid.amount)) winningBid = b;
-      });
+      const positiveBids = bids.filter((b) => b.amount > 0);
+      let maxAmount = 0;
+      positiveBids.forEach((b) => { if (b.amount > maxAmount) maxAmount = b.amount; });
+      // Everyone tied at the top - pick randomly among them instead of
+      // silently taking whoever happened to be checked first.
+      const tied = positiveBids.filter((b) => b.amount === maxAmount);
+      const winningBid = tied.length > 0 ? tied[Math.floor(Math.random() * tied.length)] : null;
+
       const bidLines = bids.map((b) => `${b.player.name}: $${b.amount}`).join(", ");
       if (winningBid) logLine(`Bids — ${bidLines}`);
 
@@ -616,27 +647,42 @@ function runGame() {
       // otherwise the bids just vanish and it's unclear who actually won.
       document.getElementById("blind-bid-controls").classList.add("hidden");
       document.getElementById("blind-wait-msg").classList.add("hidden");
-      document.getElementById("pass-screen-label").textContent = "Bids revealed!";
-      nameEl.textContent = "";
-      document.getElementById("pass-screen-hint").textContent = winningBid
-        ? `${winningBid.player.name} wins ${item.name} for $${winningBid.amount}!`
-        : `${item.name} goes unsold — nobody bid.`;
 
-      const revealList = document.getElementById("blind-reveal-list");
-      revealList.classList.remove("hidden");
-      revealList.innerHTML = bids.map((b) => {
-        const isWinner = winningBid && b.player.id === winningBid.player.id;
-        return `<li style="display:flex; justify-content:space-between; padding:8px 12px; border-radius:10px; background:${isWinner ? "rgba(240,180,41,0.14)" : "rgba(255,255,255,0.04)"}; ${isWinner ? "border:1px solid rgba(240,180,41,0.4);" : ""}">
-          <span style="color:${isWinner ? "#f0b429" : "#c9c4dd"}; font-weight:${isWinner ? "700" : "500"};">${b.player.name}${isWinner ? " 🏆" : ""}</span>
-          <span style="color:${isWinner ? "#f0b429" : "#c9c4dd"}; font-weight:${isWinner ? "700" : "500"};">$${b.amount}</span>
-        </li>`;
-      }).join("");
+      function showReveal() {
+        document.getElementById("pass-screen-label").textContent = "Bids revealed!";
+        nameEl.textContent = "";
+        document.getElementById("pass-screen-hint").textContent = winningBid
+          ? `${winningBid.player.name} wins ${item.name} for $${winningBid.amount}!`
+          : `${item.name} goes unsold — nobody bid.`;
 
-      setTimeout(() => {
-        revealList.classList.add("hidden");
-        if (winningBid) resolveItem(item, winningBid.player, winningBid.amount, queueIndex);
-        else resolveItem(item, null, 0, queueIndex);
-      }, 2600);
+        const revealList = document.getElementById("blind-reveal-list");
+        revealList.classList.remove("hidden");
+        revealList.innerHTML = bids.map((b) => {
+          const isWinner = winningBid && b.player.id === winningBid.player.id;
+          return `<li style="display:flex; justify-content:space-between; padding:8px 12px; border-radius:10px; background:${isWinner ? "rgba(240,180,41,0.14)" : "rgba(255,255,255,0.04)"}; ${isWinner ? "border:1px solid rgba(240,180,41,0.4);" : ""}">
+            <span style="color:${isWinner ? "#f0b429" : "#c9c4dd"}; font-weight:${isWinner ? "700" : "500"};">${b.player.name}${isWinner ? " 🏆" : ""}</span>
+            <span style="color:${isWinner ? "#f0b429" : "#c9c4dd"}; font-weight:${isWinner ? "700" : "500"};">$${b.amount}</span>
+          </li>`;
+        }).join("");
+
+        setTimeout(() => {
+          revealList.classList.add("hidden");
+          if (winningBid) resolveItem(item, winningBid.player, winningBid.amount, queueIndex);
+          else resolveItem(item, null, 0, queueIndex);
+        }, 2600);
+      }
+
+      if (tied.length > 1 && typeof rpSpinWheel === "function") {
+        document.getElementById("pass-screen-label").textContent = "It's a tie!";
+        nameEl.textContent = "";
+        document.getElementById("pass-screen-hint").textContent =
+          `Tied at $${maxAmount} between ${tied.map((b) => b.player.name).join(", ")} — spinning to decide…`;
+        document.getElementById("blind-reveal-list").classList.add("hidden");
+        rpSpinWheel(tied.map((b) => b.player.name), tied.indexOf(winningBid), `${winningBid.player.name} wins the spin — $${winningBid.amount}!`, 4200)
+          .then(showReveal);
+      } else {
+        showReveal();
+      }
     }
 
     btn.addEventListener("click", onSubmit);
