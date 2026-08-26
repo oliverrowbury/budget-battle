@@ -468,9 +468,8 @@ const aiValueTiers = {
   },
   "Build a Country": {
     tier1: [
-      "Booming Economy", "Free Healthcare", "Thriving Tech Scene",
-      "Elite Universities", "Feared Military", "Space Program",
-      "Fastest Internet in the World", "World's Strongest Passport",
+      "Sitting on a Gold Mine (Literally)", "Fastest Internet in the World", "Formula 1 Grand Prix",
+      "Premier Football League", "World-Class Theme Parks", "High-Speed Rail Network",
     ],
     tier4: ["War-torn", "Population of 100", "Size of Vatican City"],
   },
