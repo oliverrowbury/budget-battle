@@ -478,9 +478,9 @@ const aiValueTiers = {
     tier1: [
       "Private Island", "Private Jet", "Yacht", "Penthouse Apartment", "Beachfront Mansion",
       "Generational Wealth", "Own a Football Club", "Immortal", "Never Need to Sleep",
-      "Retire at 40", "Earn £100k a Month",
+      "Retire at 40", "Earn £100k a Month", "Billionaire",
     ],
-    tier4: ["Games Room", "A Dog", "Hot Tub", "Vintage Vespa", "Man Cave With a Pool Table"],
+    tier4: ["Games Room", "A Dog", "Hot Tub", "Vintage Vespa", "Man Cave With a Pool Table", "Unemployed Forever", "5 Foot Tall"],
   },
   "Build a 5-Course Meal": {
     tier1: [
