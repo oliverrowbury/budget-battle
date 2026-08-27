@@ -337,7 +337,15 @@ function runGame() {
       const tier = typeof aiItemTier === "function" ? aiItemTier(gameKey, item.name) : 3;
       const tierMult = { 1: 2.4, 2: 1.6, 3: 1.0, 4: 0.55 }[tier];
       const slotsLeft = Math.max(1, totalSlotsPerPlayer - current.roster.length);
-      const perSlot = Math.max(1, Math.floor(current.budget / slotsLeft));
+      // Anchored to the game's overall budget/slots, not just what's left -
+      // "budget remaining ÷ slots remaining" balloons to the ENTIRE
+      // remaining budget on the last slot, so a tier1-3 item (anything
+      // that isn't explicitly low-value) would blow the whole bankroll
+      // on whatever's left, good or not. Taking the smaller of the stable
+      // baseline and the live figure keeps bids sane late-game while still
+      // tightening up for real if the AI is genuinely low on cash.
+      const basePerSlot = Math.max(1, Math.floor(startingBudget / totalSlotsPerPlayer));
+      const perSlot = Math.min(basePerSlot, Math.max(1, Math.floor(current.budget / slotsLeft)));
       const ceiling = Math.max(1, Math.min(
         current.budget,
         Math.round(perSlot * tierMult * current.aggression * (0.85 + Math.random() * 0.7))
@@ -607,7 +615,12 @@ function runGame() {
           const tier = typeof aiItemTier === "function" ? aiItemTier(gameKey, item.name) : 3;
           const tierMult = { 1: 2.4, 2: 1.6, 3: 1.0, 4: 0.55 }[tier];
           const slotsLeft = Math.max(1, totalSlotsPerPlayer - p.roster.length);
-          const perSlot = Math.max(1, Math.floor(p.budget / slotsLeft));
+          // Same fix as the open-bid ceiling: anchor to the game's overall
+          // budget/slots rather than budget-left ÷ slots-left, which
+          // balloons to the WHOLE remaining budget on the last slot and
+          // made the AI go all-in on its final pick regardless of quality.
+          const basePerSlot = Math.max(1, Math.floor(startingBudget / totalSlotsPerPlayer));
+          const perSlot = Math.min(basePerSlot, Math.max(1, Math.floor(p.budget / slotsLeft)));
           // Most of the spread between two AIs now comes from their fixed
           // per-bot aggression (set once at game start) rather than fresh
           // randomness every bid — before this, two bots with the same
