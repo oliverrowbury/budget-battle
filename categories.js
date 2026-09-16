@@ -24,7 +24,7 @@ const bidoffCategories = {
         "Premier League — Current", "Premier League — All-Time",
         "La Liga — Current", "La Liga — All-Time",
         "Bundesliga — All-Time", "Serie A — All-Time", "Ligue 1 — All-Time",
-        "Football — All-Time", "Football — Current",
+        "Football — All-Time", "Football — Current", "Football — Build a Full 11",
         "England — All-Time", "Spain — All-Time", "France — All-Time", "Germany — All-Time",
         "Italy — All-Time", "Brazil — All-Time", "Argentina — All-Time",
         "Football — Arsenal", "Football — Manchester City", "Football — Liverpool", "Football — Chelsea",

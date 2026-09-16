@@ -1,5 +1,16 @@
 // Shared helpers for creating/joining live multiplayer BidOff rooms in Firestore.
 
+// Once every other player is done (roster full/broke/ineligible), the
+// remaining player becomes the sole bidder on every item left in the queue.
+// Declining there (Pass in open auction, $0 in blind auction) used to be
+// free and unlimited, letting them cherry-pick - decline everything they
+// don't want at no cost, then only "buy" the exact items they do want.
+// Each player gets a small, limited number of these solo declines instead;
+// once used up, they have to take whatever comes up next (still at their
+// own price, since there's no competition - it just can't be $0 anymore).
+// Referenced from room-play.js and play.js, both loaded after this file.
+const SOLO_SKIPS_PER_PLAYER = 2;
+
 function getDeviceId() {
   let id = localStorage.getItem("bidoffDeviceId");
   if (!id) {
@@ -67,6 +78,7 @@ async function createRoom(cfg) {
         spent: 0,
         needs: slotRequirement ? { ...slotRequirement } : null,
         capsRemaining: caps ? { ...caps } : null,
+        skips: SOLO_SKIPS_PER_PLAYER,
       },
     ],
     queue: null,
@@ -106,6 +118,7 @@ async function joinRoom(rawCode) {
       spent: 0,
       needs: room.slotRequirement ? { ...room.slotRequirement } : null,
       capsRemaining: room.caps ? { ...room.caps } : null,
+      skips: SOLO_SKIPS_PER_PLAYER,
     };
     tx.update(ref, {
       players: [...room.players, newPlayer],

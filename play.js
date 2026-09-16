@@ -69,6 +69,11 @@ function shuffle(arr) {
   return a;
 }
 
+// SOLO_SKIPS_PER_PLAYER (how many free "no competition" declines each
+// player gets before being forced to take the item) is defined once in
+// room.js, loaded before this file, so both local/vs-AI play (here) and
+// room-play.js share the exact same limit.
+
 function runGame() {
   document.getElementById("game-title").textContent = gameKey;
   document.getElementById("game-subtitle").textContent =
@@ -127,6 +132,9 @@ function runGame() {
       // fluctuating turn to turn, and so two AIs facing the same item don't
       // land on near-identical numbers as often.
       aggression: isAI ? 0.8 + Math.random() * 0.5 : 1,
+      // Limited personal skips for when this player is the ONLY one who
+      // could still use an item ("no competition") - see SOLO_SKIPS_PER_PLAYER.
+      skips: SOLO_SKIPS_PER_PLAYER,
     });
   }
 
@@ -421,17 +429,23 @@ function runGame() {
 
       showAllControls();
       bidInput.classList.remove("hidden");
-      // Solo bidder can always pass, even before bidding — otherwise once
-      // the other player's broke or full, they're stuck buying everything
-      // left just because nobody's around to actually bid against.
-      const canPass = currentBid > 0 || active.length === 1;
+      // A solo bidder (everyone else broke/full/ineligible) can decline
+      // instead of bidding, but only while they still have a solo skip left
+      // - otherwise they're stuck cherry-picking every item in the queue
+      // for free. With competition (currentBid > 0), declining is always
+      // free and unlimited - that's a real "I won't outbid them" choice,
+      // not a no-cost skip.
+      const solo = active.length === 1;
+      const canPass = currentBid > 0 || (solo && current.skips > 0);
       passBtn.classList.toggle("hidden", !canPass);
       placeBidBtn.textContent = "Place Bid";
-      passBtn.textContent = "Pass";
+      passBtn.textContent = solo ? `Skip (${current.skips} left)` : "Pass";
       const offerable = canOfferSkip();
       const gift = giftCandidate();
-      const options = [canPass ? "pass" : null, offerable ? "offer a skip" : null, gift ? `give it to ${gift.name}` : null].filter(Boolean).join(" or ");
-      document.getElementById("turn-prompt").textContent = `${current.name}'s turn to bid${options ? `, ${options}` : ""}`;
+      const options = [canPass ? (solo ? "skip" : "pass") : null, offerable ? "offer a skip" : null, gift ? `give it to ${gift.name}` : null].filter(Boolean).join(" or ");
+      document.getElementById("turn-prompt").textContent = solo && !canPass
+        ? `${current.name}, no skips left — you have to take this one. Set your price.`
+        : `${current.name}'s turn to bid${options ? `, ${options}` : ""}`;
       bidInput.value = currentBid + 1;
       bidInput.min = currentBid + 1;
       bidInput.max = current.budget;
@@ -513,6 +527,12 @@ function runGame() {
     function onPass() {
       if (currentBid <= 0 && active.length > 1) return;
       const current = active[turn % active.length];
+      // Solo, no-competition decline - costs one of the player's limited
+      // skips. With no skips left they can't take this path at all.
+      if (currentBid <= 0 && active.length === 1) {
+        if (current.skips <= 0) return;
+        current.skips--;
+      }
       active = active.filter((p) => p.id !== current.id);
       if (active.length > 0) turn = turn % active.length;
       step();
@@ -591,7 +611,15 @@ function runGame() {
 
     function submitBid(val) {
       const p = bidders[idx];
-      const safeVal = Number.isInteger(val) && val >= 0 && val <= p.budget ? val : 0;
+      let safeVal = Number.isInteger(val) && val >= 0 && val <= p.budget ? val : 0;
+      // Solo bidder (nobody else eligible) trying to decline via $0 - costs
+      // one of their limited solo skips. Once those run out they can't
+      // decline anymore; they have to take the item (min $1, still their
+      // own price since there's no competition).
+      if (bidders.length === 1 && safeVal === 0) {
+        if (p.skips > 0) p.skips--;
+        else safeVal = Math.min(p.budget, 1);
+      }
       bids.push({ player: p, amount: safeVal });
       idx++;
       if (idx >= bidders.length) {
@@ -633,11 +661,15 @@ function runGame() {
       }
 
       document.getElementById("pass-screen-label").textContent = "Pass the device to";
+      const soloOutOfSkips = bidders.length === 1 && p.skips <= 0;
       document.getElementById("pass-screen-hint").textContent = bidders.length === 1
-        ? "Nobody else can use this one right now (position filled, roster full, or broke) — no competition, so set your price, or enter $0 to skip it and move on."
+        ? (soloOutOfSkips
+            ? "Nobody else can use this one right now — but you're out of skips, so you have to take it. Set your price."
+            : `Nobody else can use this one right now (position filled, roster full, or broke) — no competition, so set your price, or enter $0 to skip it (${p.skips} skip${p.skips === 1 ? "" : "s"} left).`)
         : "Everyone else look away — enter your secret bid.";
       document.getElementById("blind-bid-controls").classList.remove("hidden");
-      input.value = 0;
+      input.value = soloOutOfSkips ? 1 : 0;
+      input.min = soloOutOfSkips ? 1 : 0;
       input.max = p.budget;
     }
 

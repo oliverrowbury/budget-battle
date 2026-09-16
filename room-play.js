@@ -118,6 +118,10 @@ function rpRosterFull(p, totalSlots) {
   return p.roster.length >= totalSlots;
 }
 
+// SOLO_SKIPS_PER_PLAYER is defined in room.js (loaded before this file
+// everywhere it matters, including create.html/join.html where players are
+// first created) so it's available there too.
+
 function rpAllRostersFull(players, totalSlots) {
   return players.every((p) => rpRosterFull(p, totalSlots));
 }
@@ -223,6 +227,7 @@ async function rpStartGame(code, room, deviceId) {
       spent: 0,
       needs: room.slotRequirement ? { ...room.slotRequirement } : null,
       capsRemaining: room.caps ? { ...room.caps } : null,
+      skips: SOLO_SKIPS_PER_PLAYER,
     });
   }
 
@@ -354,8 +359,10 @@ function rpCanOfferSkip(room, r, myId) {
     (room.skipRestrictedTo === null || room.skipRestrictedTo === myId);
 }
 
-// Classic, unlimited: you just don't want to outbid the current leader.
-// Removes you from this item's bidding — no restriction, no cost, every item.
+// You just don't want to outbid the current leader - unlimited, no cost,
+// every item, exactly as before. But a SOLO decline (nobody else is even in
+// the running, currentBid still $0) now draws down that player's limited
+// solo skips instead of being free forever - see SOLO_SKIPS_PER_PLAYER.
 async function rpSubmitOpenPass(code, _staleRoom, myId, deviceId) {
   const ref = db.collection("rooms").doc(code);
   await db.runTransaction(async (tx) => {
@@ -370,10 +377,18 @@ async function rpSubmitOpenPass(code, _staleRoom, myId, deviceId) {
     // just because there's nobody around to bid against.
     if (r.currentBid <= 0 && r.activeIds.length > 1) return;
 
+    const me = room.players.find((p) => p.id === myId);
+    const soloDecline = r.currentBid <= 0 && r.activeIds.length === 1;
+    if (soloDecline && (me.skips || 0) <= 0) return; // no skips left - must take it
+
     const newActiveIds = r.activeIds.filter((id) => id !== myId);
 
     if (newActiveIds.length === 0) {
-      tx.update(ref, rpComputeResolveUpdate(room, null, 0, `${r.item.name} went unsold — nobody bid`));
+      const update = rpComputeResolveUpdate(room, null, 0, `${r.item.name} went unsold — nobody bid`);
+      if (soloDecline) {
+        update.players = update.players.map((p) => (p.id === myId ? { ...p, skips: p.skips - 1 } : p));
+      }
+      tx.update(ref, update);
       return;
     }
     if (newActiveIds.length === 1 && r.currentBid > 0) {
@@ -463,7 +478,7 @@ async function rpSubmitBlindBid(code, room, myId, rawAmount, deviceId) {
   const ref = db.collection("rooms").doc(code);
   const me = room.players.find((p) => p.id === myId);
   const v = parseInt(rawAmount, 10);
-  const val = Number.isInteger(v) && v >= 0 && v <= me.budget ? v : 0;
+  let val = Number.isInteger(v) && v >= 0 && v <= me.budget ? v : 0;
 
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
@@ -472,11 +487,25 @@ async function rpSubmitBlindBid(code, room, myId, rawAmount, deviceId) {
     if (!r || r.type !== "blind" || !(myId in r.bids) || r.bids[myId] !== null) return;
     if (!rpControlledIds(freshRoom, deviceId).includes(myId)) return;
 
+    let players = freshRoom.players;
+    // Solo bidder (nobody else eligible) trying to decline via $0 - draws
+    // down their limited solo skips instead of being free forever. Once
+    // those run out they can't decline; they have to take the item (still
+    // their own price, just not $0).
+    if (r.bidderIds.length === 1 && val === 0) {
+      const freshMe = freshRoom.players.find((p) => p.id === myId);
+      if ((freshMe.skips || 0) > 0) {
+        players = freshRoom.players.map((p) => (p.id === myId ? { ...p, skips: p.skips - 1 } : p));
+      } else {
+        val = Math.min(freshMe.budget, 1);
+      }
+    }
+
     const newBids = { ...r.bids, [myId]: val };
     const allIn = r.bidderIds.every((id) => newBids[id] !== null);
 
     if (!allIn) {
-      tx.update(ref, { round: { ...r, bids: newBids }, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+      tx.update(ref, { players, round: { ...r, bids: newBids }, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
       return;
     }
 
@@ -505,6 +534,7 @@ async function rpSubmitBlindBid(code, room, myId, rawAmount, deviceId) {
     // and it's unclear who actually won. rpAdvanceBlindReveal does the
     // actual transition after a client-side delay.
     tx.update(ref, {
+      players,
       round: { ...r, bids: newBids, resolved: { winnerId, winnerAmount, bidLines, logText, tiedIds: tiedIds.length > 1 ? tiedIds : null } },
       updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
@@ -1044,25 +1074,31 @@ function runRoomGame(code, isSpectator) {
 
         const offerable = currentPlayer && rpCanOfferSkip(room, r, currentPlayer.id);
         const gift = rpGiftCandidate(room, r);
-        // Solo bidder can always pass, even before bidding — otherwise once
-        // the other player's broke or full, they're stuck buying everything
-        // left just because nobody's around to actually bid against.
-        const canPass = r.currentBid > 0 || r.activeIds.length === 1;
-        const options = [canPass ? "pass" : null, offerable ? "offer a skip" : null, gift ? `give it to ${gift.name}` : null].filter(Boolean).join(" or ");
+        // A solo bidder (everyone else broke/full/ineligible) can decline
+        // instead of bidding, but only while they still have a solo skip
+        // left - otherwise they could cherry-pick the whole rest of the
+        // queue for free. With real competition (currentBid > 0), declining
+        // stays free and unlimited - that's a genuine "won't outbid them".
+        const solo = r.activeIds.length === 1;
+        const currentSkips = currentPlayer ? (currentPlayer.skips || 0) : 0;
+        const canPass = r.currentBid > 0 || (solo && currentSkips > 0);
+        const options = [canPass ? (solo ? "skip" : "pass") : null, offerable ? "offer a skip" : null, gift ? `give it to ${gift.name}` : null].filter(Boolean).join(" or ");
 
         document.getElementById("current-bid-amount").textContent = `$${r.currentBid}`;
         const leader = r.currentLeaderId != null ? room.players.find((p) => p.id === r.currentLeaderId) : null;
         document.getElementById("current-bid-leader").textContent = leader ? `(${leader.name})` : "";
         document.getElementById("turn-prompt").textContent = !isMyTurn
           ? `Waiting for ${currentPlayer ? currentPlayer.name : "…"} to bid${currentPlayer && rpIsAway(currentPlayer, deviceId) ? " — they may be away, still waiting on them" : ""}`
-          : isOwnDevice
-            ? `Your turn to bid${options ? `, ${options}` : ""}`
-            : `${currentPlayer.name}'s turn — pass the device, then bid${options ? `, ${options}` : ""}`;
+          : solo && !canPass
+            ? `${isOwnDevice ? "You have" : `${currentPlayer.name} has`} no skips left — you have to take this one. Set your price.`
+            : isOwnDevice
+              ? `Your turn to bid${options ? `, ${options}` : ""}`
+              : `${currentPlayer.name}'s turn — pass the device, then bid${options ? `, ${options}` : ""}`;
 
         document.getElementById("open-bid-controls").classList.toggle("hidden", !isMyTurn);
         bidInput.classList.remove("hidden");
         placeBidBtn.textContent = "Place Bid";
-        passBtn.textContent = "Pass";
+        passBtn.textContent = solo ? `Skip (${currentSkips} left)` : "Pass";
         bidInput.disabled = !isMyTurn;
         placeBidBtn.disabled = !isMyTurn;
         passBtn.classList.toggle("hidden", !canPass);
@@ -1195,18 +1231,23 @@ function runRoomGame(code, isSpectator) {
         // from — leaving a genuine solo round with nobody to bid against. Real,
         // not a bug, but "0/1 locked in" alone reads as broken, so spell it out.
         const soloRound = r.bidderIds.length === 1;
+        const soloSkips = actingPlayer ? (actingPlayer.skips || 0) : 0;
+        const soloOutOfSkips = soloRound && soloSkips <= 0;
 
         document.getElementById("pass-screen-label").textContent = actingPlayer && actingPlayer.deviceId !== deviceId ? "Pass the device to" : "Your secret bid";
         document.getElementById("pass-player-name").textContent = actingPlayer ? actingPlayer.name : "";
         document.getElementById("pass-screen-hint").textContent = soloRound
-          ? "Nobody else can use this one right now (position filled, roster full, or broke) — no competition, so set your price, or enter $0 to skip it and move on."
+          ? (soloOutOfSkips
+              ? "Nobody else can use this one right now — but you're out of skips, so you have to take it. Set your price."
+              : `Nobody else can use this one right now (position filled, roster full, or broke) — no competition, so set your price, or enter $0 to skip it (${soloSkips} skip${soloSkips === 1 ? "" : "s"} left).`)
           : `${submittedCount}/${r.bidderIds.length} players have locked in a bid.`;
 
         if (iAmBidder && !iHaveSubmitted) {
           blindControls.classList.remove("hidden");
           waitMsg.classList.add("hidden");
           if (document.activeElement !== blindInput) {
-            blindInput.value = 0;
+            blindInput.value = soloOutOfSkips ? 1 : 0;
+            blindInput.min = soloOutOfSkips ? 1 : 0;
             blindInput.max = actingPlayer.budget;
           }
           submitBtn.disabled = false;

@@ -8,37 +8,45 @@
 // Fixed roster composition required per player for game modes that
 // draft by position. Game modes not listed here have no position
 // requirement — any items from the pool can fill any slot.
+// Football/soccer modes default to 5-a-side squads (always 1 GK) so a game
+// plays out fast. "Football — Build a Full 11" is the one exception - a
+// separate gamemode that keeps the traditional 11-man lineup, paired with a
+// bigger $50 fixed budget in gameBudgets below.
+const FIVE_A_SIDE_SLOTS = { "Goalkeeper": 1, "Defender": 2, "Midfielder": 1, "Attacker": 1 };
+const FULL_11_SLOTS = { "Goalkeeper": 1, "Defender": 4, "Midfielder": 3, "Attacker": 3 };
+
 const gameSlots = {
-  "Premier League — Current": { "Goalkeeper": 1, "Defender": 4, "Midfielder": 3, "Attacker": 3 },
-  "Premier League — All-Time": { "Goalkeeper": 1, "Defender": 4, "Midfielder": 3, "Attacker": 3 },
-  "La Liga — Current": { "Goalkeeper": 1, "Defender": 4, "Midfielder": 3, "Attacker": 3 },
-  "La Liga — All-Time": { "Goalkeeper": 1, "Defender": 4, "Midfielder": 3, "Attacker": 3 },
-  "Bundesliga — All-Time": { "Goalkeeper": 1, "Defender": 4, "Midfielder": 3, "Attacker": 3 },
-  "Serie A — All-Time": { "Goalkeeper": 1, "Defender": 4, "Midfielder": 3, "Attacker": 3 },
-  "Ligue 1 — All-Time": { "Goalkeeper": 1, "Defender": 4, "Midfielder": 3, "Attacker": 3 },
-  "Football — All-Time": { "Goalkeeper": 1, "Defender": 4, "Midfielder": 3, "Attacker": 3 },
-  "Football — Current": { "Goalkeeper": 1, "Defender": 4, "Midfielder": 3, "Attacker": 3 },
-  "England — All-Time": { "Goalkeeper": 1, "Defender": 4, "Midfielder": 3, "Attacker": 3 },
-  "Spain — All-Time": { "Goalkeeper": 1, "Defender": 4, "Midfielder": 3, "Attacker": 3 },
-  "France — All-Time": { "Goalkeeper": 1, "Defender": 4, "Midfielder": 3, "Attacker": 3 },
-  "Germany — All-Time": { "Goalkeeper": 1, "Defender": 4, "Midfielder": 3, "Attacker": 3 },
-  "Italy — All-Time": { "Goalkeeper": 1, "Defender": 4, "Midfielder": 3, "Attacker": 3 },
-  "Brazil — All-Time": { "Goalkeeper": 1, "Defender": 4, "Midfielder": 3, "Attacker": 3 },
-  "Argentina — All-Time": { "Goalkeeper": 1, "Defender": 4, "Midfielder": 3, "Attacker": 3 },
-  "Football — Arsenal": { "Goalkeeper": 1, "Defender": 4, "Midfielder": 3, "Attacker": 3 },
-  "Football — Manchester City": { "Goalkeeper": 1, "Defender": 4, "Midfielder": 3, "Attacker": 3 },
-  "Football — Liverpool": { "Goalkeeper": 1, "Defender": 4, "Midfielder": 3, "Attacker": 3 },
-  "Football — Chelsea": { "Goalkeeper": 1, "Defender": 4, "Midfielder": 3, "Attacker": 3 },
-  "Football — Tottenham Hotspur": { "Goalkeeper": 1, "Defender": 4, "Midfielder": 3, "Attacker": 3 },
-  "Football — Real Madrid": { "Goalkeeper": 1, "Defender": 4, "Midfielder": 3, "Attacker": 3 },
-  "Football — Barcelona": { "Goalkeeper": 1, "Defender": 4, "Midfielder": 3, "Attacker": 3 },
-  "Football — Atlético Madrid": { "Goalkeeper": 1, "Defender": 4, "Midfielder": 3, "Attacker": 3 },
-  "Football — Bayern Munich": { "Goalkeeper": 1, "Defender": 4, "Midfielder": 3, "Attacker": 3 },
-  "Football — Borussia Dortmund": { "Goalkeeper": 1, "Defender": 4, "Midfielder": 3, "Attacker": 3 },
-  "Football — Paris Saint-Germain": { "Goalkeeper": 1, "Defender": 4, "Midfielder": 3, "Attacker": 3 },
-  "Football — Juventus": { "Goalkeeper": 1, "Defender": 4, "Midfielder": 3, "Attacker": 3 },
-  "Football — AC Milan": { "Goalkeeper": 1, "Defender": 4, "Midfielder": 3, "Attacker": 3 },
-  "Football — Inter Milan": { "Goalkeeper": 1, "Defender": 4, "Midfielder": 3, "Attacker": 3 },
+  "Premier League — Current": FIVE_A_SIDE_SLOTS,
+  "Premier League — All-Time": FIVE_A_SIDE_SLOTS,
+  "La Liga — Current": FIVE_A_SIDE_SLOTS,
+  "La Liga — All-Time": FIVE_A_SIDE_SLOTS,
+  "Bundesliga — All-Time": FIVE_A_SIDE_SLOTS,
+  "Serie A — All-Time": FIVE_A_SIDE_SLOTS,
+  "Ligue 1 — All-Time": FIVE_A_SIDE_SLOTS,
+  "Football — All-Time": FIVE_A_SIDE_SLOTS,
+  "Football — Current": FIVE_A_SIDE_SLOTS,
+  "Football — Build a Full 11": FULL_11_SLOTS,
+  "England — All-Time": FIVE_A_SIDE_SLOTS,
+  "Spain — All-Time": FIVE_A_SIDE_SLOTS,
+  "France — All-Time": FIVE_A_SIDE_SLOTS,
+  "Germany — All-Time": FIVE_A_SIDE_SLOTS,
+  "Italy — All-Time": FIVE_A_SIDE_SLOTS,
+  "Brazil — All-Time": FIVE_A_SIDE_SLOTS,
+  "Argentina — All-Time": FIVE_A_SIDE_SLOTS,
+  "Football — Arsenal": FIVE_A_SIDE_SLOTS,
+  "Football — Manchester City": FIVE_A_SIDE_SLOTS,
+  "Football — Liverpool": FIVE_A_SIDE_SLOTS,
+  "Football — Chelsea": FIVE_A_SIDE_SLOTS,
+  "Football — Tottenham Hotspur": FIVE_A_SIDE_SLOTS,
+  "Football — Real Madrid": FIVE_A_SIDE_SLOTS,
+  "Football — Barcelona": FIVE_A_SIDE_SLOTS,
+  "Football — Atlético Madrid": FIVE_A_SIDE_SLOTS,
+  "Football — Bayern Munich": FIVE_A_SIDE_SLOTS,
+  "Football — Borussia Dortmund": FIVE_A_SIDE_SLOTS,
+  "Football — Paris Saint-Germain": FIVE_A_SIDE_SLOTS,
+  "Football — Juventus": FIVE_A_SIDE_SLOTS,
+  "Football — AC Milan": FIVE_A_SIDE_SLOTS,
+  "Football — Inter Milan": FIVE_A_SIDE_SLOTS,
   "Build a 5-Course Meal": { "Starter": 1, "Soup": 1, "Salad": 1, "Main": 1, "Dessert": 1 },
   "Build a Movie": { "Genre": 1, "Lead Actor": 1, "Story": 1, "Traits": 1, "Money Spent On It": 1 },
   "NFL — Current": { "Quarterback": 1, "Running Back": 1, "Receiver": 2, "Defense": 1 },
@@ -52,7 +60,15 @@ const gameSlots = {
   "Cricket — One Team": { "Batsman": 2, "Bowler": 1, "All-Rounder": 1, "Wicketkeeper": 1 },
   "IPL — Current": { "Batsman": 2, "Bowler": 1, "All-Rounder": 1, "Wicketkeeper": 1 },
   "IPL — All-Time": { "Batsman": 2, "Bowler": 1, "All-Rounder": 1, "Wicketkeeper": 1 },
-  "Top Clubs — All-Time, One Club": { "Goalkeeper": 1, "Defender": 4, "Midfielder": 3, "Attacker": 3 },
+  "Top Clubs — All-Time, One Club": FIVE_A_SIDE_SLOTS,
+};
+
+// Fixed budgets for game modes that shouldn't use the normal $15/$20/$25
+// picker - "Football — Build a Full 11" needs real money for 11 slots.
+// Mirrors gameSlots: create.js hides the budget picker and shows this
+// instead whenever the selected game has an entry here.
+const gameBudgets = {
+  "Football — Build a Full 11": 50,
 };
 
 // Soft maximums for game modes that draft freely but shouldn't let one
@@ -12892,3 +12908,8 @@ const gamePools = {
     { "name": "Chris Woakes (Warwickshire)", "position": "All-Rounder" },
   ],
 };
+
+// "Build a Full 11" reuses the same general football pool as "Football —
+// All-Time" - it's the same players, just drafted into the traditional
+// 11-man lineup (FULL_11_SLOTS above) instead of a 5-a-side squad.
+gamePools["Football — Build a Full 11"] = gamePools["Football — All-Time"];
