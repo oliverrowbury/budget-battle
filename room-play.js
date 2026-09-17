@@ -1119,6 +1119,18 @@ function runRoomGame(code, isSpectator) {
         }
       }
 
+      // A submit that gets rejected server-side (bid no longer beats the
+      // current one because someone else just bid, budget changed, turn
+      // moved on, etc.) makes NO write - so no fresh snapshot ever arrives
+      // to re-enable these buttons, and the whole room-play screen looks
+      // dead until reloaded. Re-rendering from the latest known room state
+      // once the call settles - success or silent rejection alike - always
+      // restores the correct enabled/disabled state instead of leaving it
+      // stuck on whatever the click handler force-disabled.
+      function reRenderAfterAction() {
+        render(latestRoom, latestRoom.players.find((p) => p.deviceId === deviceId) || null);
+      }
+
       if (!openListenersBound) {
         openListenersBound = true;
         placeBidBtn.addEventListener("click", () => {
@@ -1127,11 +1139,10 @@ function runRoomGame(code, isSpectator) {
           passBtn.disabled = true;
           skipBtn.disabled = true;
           const rr = latestRoom.round;
-          if (rr.pendingSkip) {
-            rpSubmitAgreeSkip(code, latestRoom, rr.pendingSkip.responderQueue[0], deviceId);
-          } else {
-            rpSubmitOpenBid(code, latestRoom, rr.activeIds[rr.turnIndex], bidInput.value, deviceId);
-          }
+          const call = rr.pendingSkip
+            ? rpSubmitAgreeSkip(code, latestRoom, rr.pendingSkip.responderQueue[0], deviceId)
+            : rpSubmitOpenBid(code, latestRoom, rr.activeIds[rr.turnIndex], bidInput.value, deviceId);
+          call.finally(reRenderAfterAction);
         });
         passBtn.addEventListener("click", () => {
           if (passBtn.disabled) return;
@@ -1139,7 +1150,7 @@ function runRoomGame(code, isSpectator) {
           passBtn.disabled = true;
           skipBtn.disabled = true;
           const rr = latestRoom.round;
-          rpSubmitOpenPass(code, latestRoom, rr.activeIds[rr.turnIndex], deviceId);
+          rpSubmitOpenPass(code, latestRoom, rr.activeIds[rr.turnIndex], deviceId).finally(reRenderAfterAction);
         });
         skipBtn.addEventListener("click", () => {
           if (skipBtn.disabled) return;
@@ -1147,11 +1158,10 @@ function runRoomGame(code, isSpectator) {
           passBtn.disabled = true;
           skipBtn.disabled = true;
           const rr = latestRoom.round;
-          if (rr.pendingSkip) {
-            rpSubmitTakeFree(code, latestRoom, rr.pendingSkip.responderQueue[0], deviceId);
-          } else {
-            rpSubmitOfferSkip(code, latestRoom, rr.activeIds[rr.turnIndex], deviceId);
-          }
+          const call = rr.pendingSkip
+            ? rpSubmitTakeFree(code, latestRoom, rr.pendingSkip.responderQueue[0], deviceId)
+            : rpSubmitOfferSkip(code, latestRoom, rr.activeIds[rr.turnIndex], deviceId);
+          call.finally(reRenderAfterAction);
         });
       }
     } else {
@@ -1278,7 +1288,12 @@ function runRoomGame(code, isSpectator) {
           const pending = rr.bidderIds.filter((id) => controlledNow.includes(id) && (rr.bids[id] === null || rr.bids[id] === undefined));
           if (pending.length === 0) return;
           submitBtn.disabled = true;
-          rpSubmitBlindBid(code, latestRoom, pending[0], blindInput.value, deviceId);
+          // Same reasoning as the open-auction buttons: a submit that's
+          // silently rejected (already bid, stale round) writes nothing, so
+          // without this the button stays disabled forever with no snapshot
+          // ever arriving to fix it.
+          rpSubmitBlindBid(code, latestRoom, pending[0], blindInput.value, deviceId)
+            .finally(() => render(latestRoom, latestRoom.players.find((p) => p.deviceId === deviceId) || null));
         });
       }
     }
