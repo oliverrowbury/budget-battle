@@ -105,6 +105,7 @@ function selectCategory(catName) {
   }
 
   updateSlotsVisibility();
+  updateBudgetVisibility();
   updateStartButton();
 }
 
@@ -127,12 +128,14 @@ function selectSubcategory(catName, subName) {
   selectedGameKey = select.value;
 
   updateSlotsVisibility();
+  updateBudgetVisibility();
   updateStartButton();
 }
 
 function selectGame(key) {
   selectedGameKey = key;
   updateSlotsVisibility();
+  updateBudgetVisibility();
   updateStartButton();
 }
 
@@ -151,6 +154,27 @@ function updateSlotsVisibility() {
     fixedText.textContent = `This game has fixed squad positions — ${parts.join(", ")} (${total} total). The slots setting below doesn't apply.`;
   } else {
     slotsSection.classList.remove("hidden");
+    fixedInfo.classList.add("hidden");
+  }
+}
+
+function fixedBudgetFor(gameKey) {
+  return gameKey && typeof gameBudgets !== "undefined" ? gameBudgets[gameKey] : null;
+}
+
+function updateBudgetVisibility() {
+  const budgetSection = document.getElementById("budget-section");
+  const fixedInfo = document.getElementById("fixed-budget-info");
+  const fixedText = document.getElementById("fixed-budget-text");
+
+  const fixed = fixedBudgetFor(selectedGameKey);
+
+  if (fixed) {
+    budgetSection.classList.add("hidden");
+    fixedInfo.classList.remove("hidden");
+    fixedText.textContent = `This game has a fixed budget — $${fixed} per player. The budget setting above doesn't apply.`;
+  } else {
+    budgetSection.classList.remove("hidden");
     fixedInfo.classList.add("hidden");
   }
 }
@@ -181,7 +205,9 @@ document.querySelectorAll('.section[data-key="opponent"] .option').forEach((btn)
 function updateStartButton() {
   const playersSelected = document.querySelector('.section[data-key="players"] .option.selected');
   const auctionSelected = document.querySelector('.section[data-key="auction"] .option.selected');
-  const budgetSelected = document.querySelector('.section[data-key="budget"] .option.selected');
+
+  const budgetFixed = !!fixedBudgetFor(selectedGameKey);
+  const budgetSelected = budgetFixed || document.querySelector('.section[data-key="budget"] .option.selected');
 
   const slotsSection = document.getElementById("slots-section");
   const slotsFixed = slotsSection.classList.contains("hidden");
@@ -198,7 +224,8 @@ startButton.addEventListener("click", async () => {
 
   const players = parseInt(document.querySelector('.section[data-key="players"] .option.selected').dataset.value, 10);
   const auction = document.querySelector('.section[data-key="auction"] .option.selected').dataset.value;
-  const budget = parseInt(document.querySelector('.section[data-key="budget"] .option.selected').dataset.value, 10);
+  const fixedBudget = fixedBudgetFor(selectedGameKey);
+  const budget = fixedBudget || parseInt(document.querySelector('.section[data-key="budget"] .option.selected').dataset.value, 10);
   const slots = parseInt(document.querySelector('.section[data-key="slots"] .option.selected').dataset.value, 10);
 
   if (isAiMode()) {

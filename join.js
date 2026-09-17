@@ -184,8 +184,11 @@ function renderPublicGames() {
       btn.textContent = "JOIN";
       btn.addEventListener("click", () => joinPublicRoom(r.code, btn));
     } else {
-      btn.textContent = "IN PROGRESS";
-      btn.disabled = true;
+      // Can't join a game already underway, but nothing stops someone
+      // watching it live instead of just sitting with nothing to do.
+      btn.textContent = "👀 WATCH";
+      btn.classList.add("watch");
+      btn.addEventListener("click", () => goTo(`play.html?room=${r.code}&spectate=1`));
     }
     row.appendChild(btn);
 

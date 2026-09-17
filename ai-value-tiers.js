@@ -497,9 +497,9 @@ const aiValueTiers = {
   },
   "Survival Apocalypse": {
     tier1: [
-      "Bear Grylls", "Rick Grimes", "Daryl Dixon", "The Terminator", "Sarah Connor",
-      "Geralt of Rivia", "Navy SEAL", "Ellie Williams", "Katniss Everdeen",
-      "Indiana Jones", "James Bond", "Jason Bourne",
+      "Bear Grylls", "Navy SEAL", "Rudy Reyes", "Mark 'Billy' Billingham", "Jason 'Foxy' Fox",
+      "Remi Adeleke", "Dwayne 'The Rock' Johnson", "Arnold Schwarzenegger",
+      "Khabib Nurmagomedov", "Conor McGregor", "Mike Tyson", "Jason Statham",
     ],
   },
   "Build a Garage": {
