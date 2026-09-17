@@ -428,7 +428,26 @@ function runGame() {
       }
 
       showAllControls();
+      const gift = giftCandidate();
+
+      // A broke opponent who still needs picks isn't "no competition" in
+      // the usual sense - nobody should have to pay anything here. Free for
+      // whoever's bidding, or free for the broke player, for as long as
+      // that's still true (no skip cost, no limit - unlike declining below).
+      if (gift) {
+        bidInput.classList.add("hidden");
+        placeBidBtn.classList.add("hidden");
+        passBtn.classList.remove("hidden");
+        passBtn.textContent = "Take It (Free)";
+        skipBtn.classList.remove("hidden");
+        skipBtn.textContent = `Give to ${gift.name} (Free)`;
+        document.getElementById("turn-prompt").textContent =
+          `${gift.name} is out of money but still needs picks — take ${item.name} for free, or give it to them for free.`;
+        return;
+      }
+
       bidInput.classList.remove("hidden");
+      placeBidBtn.classList.remove("hidden");
       // A solo bidder (everyone else broke/full/ineligible) can decline
       // instead of bidding, but only while they still have a solo skip left
       // - otherwise they're stuck cherry-picking every item in the queue
@@ -441,21 +460,15 @@ function runGame() {
       placeBidBtn.textContent = "Place Bid";
       passBtn.textContent = solo ? `Skip (${current.skips} left)` : "Pass";
       const offerable = canOfferSkip();
-      const gift = giftCandidate();
-      const options = [canPass ? (solo ? "skip" : "pass") : null, offerable ? "offer a skip" : null, gift ? `give it to ${gift.name}` : null].filter(Boolean).join(" or ");
+      const options = [canPass ? (solo ? "skip" : "pass") : null, offerable ? "offer a skip" : null].filter(Boolean).join(" or ");
       document.getElementById("turn-prompt").textContent = solo && !canPass
         ? `${current.name}, no skips left — you have to take this one. Set your price.`
         : `${current.name}'s turn to bid${options ? `, ${options}` : ""}`;
       bidInput.value = currentBid + 1;
       bidInput.min = currentBid + 1;
       bidInput.max = current.budget;
-      if (gift) {
-        skipBtn.classList.remove("hidden");
-        skipBtn.textContent = `Give to ${gift.name} (Free)`;
-      } else {
-        skipBtn.classList.toggle("hidden", !offerable);
-        skipBtn.textContent = "Skip";
-      }
+      skipBtn.classList.toggle("hidden", !offerable);
+      skipBtn.textContent = "Skip";
     }
 
     // Budget/slots-aware heuristic, boosted by a real quality signal where
@@ -467,6 +480,9 @@ function runGame() {
     function aiTakeOpenTurn() {
       const current = active[turn % active.length];
       if (!current || !current.isAI) return;
+      // A free pickup (broke opponent still needs picks) is strictly
+      // better than paying for it - always take it.
+      if (giftCandidate()) { onPass(); return; }
       const { ceiling, tier, slotsLeft } = aiCeilingFor(current);
       const budgetDesperate = current.budget <= slotsLeft; // averaging ~$1/slot left — real risk of going bust
       const notWorthFighting = tier >= 3 && current.budget <= slotsLeft * 2 && Math.random() < (tier === 4 ? 0.45 : 0.15);
@@ -525,8 +541,17 @@ function runGame() {
     }
 
     function onPass() {
-      if (currentBid <= 0 && active.length > 1) return;
       const current = active[turn % active.length];
+      // Repurposed as "Take It (Free)" whenever a broke opponent is the
+      // only reason nobody's competing - free pickup, no skip cost, no
+      // limit, resolves straight to the current bidder.
+      const gift = giftCandidate();
+      if (gift) {
+        cleanup();
+        resolveItem(item, current, 0, queueIndex);
+        return;
+      }
+      if (currentBid <= 0 && active.length > 1) return;
       // Solo, no-competition decline - costs one of the player's limited
       // skips. With no skips left they can't take this path at all.
       if (currentBid <= 0 && active.length === 1) {
@@ -608,6 +633,23 @@ function runGame() {
     const nameEl = document.getElementById("pass-player-name");
     const input = document.getElementById("blind-bid-input");
     const btn = document.getElementById("submit-blind-bid-btn");
+    const takeFreeBtn = document.getElementById("blind-take-free-btn");
+    const giveFreeBtn = document.getElementById("blind-give-free-btn");
+
+    // If the only other player(s) who'd want this item are flat broke (not
+    // full, not capped out - just out of money), the sole bidder shouldn't
+    // have to pay anything for it either: free for them, or free for the
+    // broke player, every item, for as long as that's still true.
+    function giftCandidate(actingPlayer) {
+      if (bidders.length !== 1) return null;
+      return players.find((p) => p.id !== actingPlayer.id && p.budget < 1 && eligibleIgnoreBudget(p, item)) || null;
+    }
+
+    function removeBlindListeners() {
+      btn.removeEventListener("click", onSubmit);
+      takeFreeBtn.removeEventListener("click", onTakeFree);
+      giveFreeBtn.removeEventListener("click", onGiveFree);
+    }
 
     function submitBid(val) {
       const p = bidders[idx];
@@ -623,11 +665,33 @@ function runGame() {
       bids.push({ player: p, amount: safeVal });
       idx++;
       if (idx >= bidders.length) {
-        btn.removeEventListener("click", onSubmit);
+        removeBlindListeners();
         reveal();
       } else {
         prompt();
       }
+    }
+
+    // Free resolution when a broke opponent is the only reason this is a
+    // solo round - bypasses the bids/reveal flow entirely (nothing to
+    // reveal, nobody to out-price) and jumps straight to the next item.
+    function resolveFree(winner) {
+      removeBlindListeners();
+      document.getElementById("blind-bid-controls").classList.add("hidden");
+      resolveItem(item, winner, 0, queueIndex);
+    }
+
+    function onTakeFree() {
+      const p = bidders[idx];
+      if (!giftCandidate(p)) return;
+      resolveFree(p);
+    }
+
+    function onGiveFree() {
+      const p = bidders[idx];
+      const gift = giftCandidate(p);
+      if (!gift) return;
+      resolveFree(gift);
     }
 
     function prompt() {
@@ -640,6 +704,8 @@ function runGame() {
         document.getElementById("pass-screen-hint").textContent = `${p.name} is deciding their bid…`;
         document.getElementById("blind-bid-controls").classList.add("hidden");
         setTimeout(() => {
+          // A free pickup is strictly better than paying for it.
+          if (giftCandidate(p)) { onTakeFree(); return; }
           const tier = typeof aiItemTier === "function" ? aiItemTier(gameKey, item.name) : 3;
           const tierMult = { 1: 2.4, 2: 1.6, 3: 1.0, 4: 0.55 }[tier];
           const slotsLeft = Math.max(1, totalSlotsPerPlayer - p.roster.length);
@@ -661,6 +727,25 @@ function runGame() {
       }
 
       document.getElementById("pass-screen-label").textContent = "Pass the device to";
+      const gift = giftCandidate(p);
+
+      if (gift) {
+        document.getElementById("pass-screen-hint").textContent =
+          `${gift.name} is out of money but still needs picks — take ${item.name} for free, or give it to them for free.`;
+        document.getElementById("blind-bid-controls").classList.remove("hidden");
+        input.classList.add("hidden");
+        btn.classList.add("hidden");
+        takeFreeBtn.classList.remove("hidden");
+        giveFreeBtn.classList.remove("hidden");
+        giveFreeBtn.textContent = `Give to ${gift.name} (Free)`;
+        return;
+      }
+
+      input.classList.remove("hidden");
+      btn.classList.remove("hidden");
+      takeFreeBtn.classList.add("hidden");
+      giveFreeBtn.classList.add("hidden");
+
       const soloOutOfSkips = bidders.length === 1 && p.skips <= 0;
       document.getElementById("pass-screen-hint").textContent = bidders.length === 1
         ? (soloOutOfSkips
@@ -732,6 +817,8 @@ function runGame() {
     }
 
     btn.addEventListener("click", onSubmit);
+    takeFreeBtn.addEventListener("click", onTakeFree);
+    giveFreeBtn.addEventListener("click", onGiveFree);
     prompt();
   }
 
