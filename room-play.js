@@ -105,6 +105,77 @@ function rpPulseClass(el, className) {
   el.classList.add(className);
 }
 
+// Big popping toast + confetti burst for an actual win - shared by local/
+// vs-AI play (play.js's resolveItem) and live rooms (room-play.js's render,
+// triggered off a real log-line change). Purely cosmetic and self-cleaning
+// (elements remove themselves after their animation), so it's safe to fire
+// from either path with no state to track.
+function celebrateWin(message) {
+  const layer = document.getElementById("win-toast-layer");
+  if (!layer) return;
+
+  const toast = document.createElement("div");
+  toast.className = "win-toast";
+  toast.innerHTML = `<span class="win-toast-line">🎉 ${rpEscapeHtml(message)}</span>`;
+  layer.appendChild(toast);
+  setTimeout(() => toast.remove(), 1700);
+
+  const colors = ["#f0b429", "#ffd873", "#7c86ff", "#2dd4bf", "#ff6b81"];
+  for (let i = 0; i < 26; i++) {
+    const piece = document.createElement("div");
+    piece.className = "confetti-piece";
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 70 + Math.random() * 170;
+    piece.style.setProperty("--dx", `${Math.cos(angle) * dist}px`);
+    piece.style.setProperty("--dy", `${Math.sin(angle) * dist * 0.6 + 130}px`);
+    piece.style.setProperty("--rot", `${(Math.random() - 0.5) * 720}deg`);
+    piece.style.background = colors[i % colors.length];
+    piece.style.animationDelay = `${Math.random() * 0.12}s`;
+    layer.appendChild(piece);
+    setTimeout(() => piece.remove(), 1500);
+  }
+}
+
+// Plain-text recap of a finished game, for the Share button on both local
+// and multiplayer results screens. No hardcoded domain - whatever origin
+// this page is actually running on, so it's correct wherever it's deployed.
+function buildShareText(gameKey, players) {
+  const lines = players.map((p) => {
+    const items = p.roster.map((r) => r.name).join(", ") || "(nothing)";
+    return `${p.name} — $${p.spent} spent: ${items}`;
+  });
+  const link = `${window.location.origin}/create.html`;
+  return `🔨 BidOff — ${gameKey}\n\n${lines.join("\n")}\n\nBuild your own squad: ${link}`;
+}
+
+// Wires the results screen's Share button once. Prefers the native share
+// sheet (great on phones - straight to Messages/Snap/etc.), falls back to
+// clipboard, then a plain alert if even that's blocked.
+function wireShareButton(getShareText) {
+  const btn = document.getElementById("share-result-btn");
+  if (!btn || btn.dataset.wired) return;
+  btn.dataset.wired = "1";
+  const originalText = btn.textContent;
+  btn.addEventListener("click", async () => {
+    const text = getShareText();
+    if (navigator.share) {
+      try {
+        await navigator.share({ text });
+        return;
+      } catch (e) {
+        return; // user cancelled the native share sheet - not an error
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      btn.textContent = "Copied! 📋";
+      setTimeout(() => { btn.textContent = originalText; }, 1500);
+    } catch (e) {
+      alert(text);
+    }
+  });
+}
+
 function rpShuffle(arr) {
   const a = arr.slice();
   for (let i = a.length - 1; i > 0; i--) {
@@ -129,9 +200,11 @@ function rpAllRostersFull(players, totalSlots) {
 function rpEligible(p, item, totalSlots) {
   if (p.budget < 1) return false;
   if (rpRosterFull(p, totalSlots)) return false;
-  if (item.position && p.needs) {
-    if (!(item.position in p.needs) || p.needs[item.position] <= 0) return false;
-  }
+  // Only a position actually TRACKED in needs (has a required count) can
+  // block eligibility here - a position with no requirement at all (e.g.
+  // football's outfield positions, which are free-for-any) is never gated
+  // by this check, only by roster space and any cap below.
+  if (item.position && p.needs && item.position in p.needs && p.needs[item.position] <= 0) return false;
   if (item.position && p.capsRemaining && item.position in p.capsRemaining) {
     if (p.capsRemaining[item.position] <= 0) return false;
   }
@@ -140,9 +213,7 @@ function rpEligible(p, item, totalSlots) {
 
 function rpEligibleIgnoreBudget(p, item, totalSlots) {
   if (rpRosterFull(p, totalSlots)) return false;
-  if (item.position && p.needs) {
-    if (!(item.position in p.needs) || p.needs[item.position] <= 0) return false;
-  }
+  if (item.position && p.needs && item.position in p.needs && p.needs[item.position] <= 0) return false;
   if (item.position && p.capsRemaining && item.position in p.capsRemaining) {
     if (p.capsRemaining[item.position] <= 0) return false;
   }
@@ -952,6 +1023,7 @@ function runRoomGame(code, isSpectator) {
       gameView.classList.add("hidden");
       resultsView.classList.remove("hidden");
       renderFinalRosters(room);
+      wireShareButton(() => buildShareText(room.gameKey, room.players));
       // AI Judge is switched off for now (ai-judge.js/backend still exist,
       // just not wired up from here) - see play.js for the matching spot.
     } else if (room.status === "aborted") {
@@ -1068,7 +1140,13 @@ function runRoomGame(code, isSpectator) {
     log.innerHTML = room.log.map((line) => `<div>${rpEscapeHtml(line)}</div>`).join("");
 
     if (room.log[0] && room.log[0] !== lastLogFirst) {
-      if (lastLogFirst !== null) rpPulseClass(document.getElementById("auction-card"), "win-flash");
+      if (lastLogFirst !== null) {
+        rpPulseClass(document.getElementById("auction-card"), "win-flash");
+        // Celebrate anything that actually landed someone an item (won,
+        // auto-won, given/taken free) - just not the "nobody got it"
+        // outcomes (unsold, mutually skipped).
+        if (!/unsold|skipped by mutual agreement/.test(room.log[0])) celebrateWin(room.log[0]);
+      }
       lastLogFirst = room.log[0];
     }
 

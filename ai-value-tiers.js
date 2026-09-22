@@ -366,9 +366,9 @@ const aiValueTiers = {
   "Movies — All-Time": {
     tier1: [
       "The Godfather", "The Shawshank Redemption", "Pulp Fiction", "The Dark Knight",
-      "Schindler's List", "The Godfather Part II", "Citizen Kane", "Goodfellas",
+      "Schindler's List", "The Godfather Part II", "Anora", "Goodfellas",
       "Fight Club", "Star Wars", "Jaws", "Titanic",
-      "The Lord of the Rings: The Fellowship of the Ring", "12 Angry Men", "Parasite",
+      "The Lord of the Rings: The Fellowship of the Ring", "One Battle After Another", "Parasite",
       "Oppenheimer",
     ],
   },

@@ -48,9 +48,13 @@ async function createRoom(cfg) {
   const pool = buildPool(cfg.game);
   const slotRequirement = (typeof gameSlots !== "undefined" && gameSlots[cfg.game]) || null;
   const caps = (typeof categoryCaps !== "undefined" && categoryCaps[cfg.game]) || null;
-  const totalSlotsPerPlayer = slotRequirement
+  // Most games' squad size is just the sum of their required positions, but
+  // some (football) only hard-require ONE position (goalkeeper) with the
+  // rest of the roster free-for-any-position - gameTotalSlots overrides the
+  // sum for those.
+  const totalSlotsPerPlayer = (typeof gameTotalSlots !== "undefined" && gameTotalSlots[cfg.game]) || (slotRequirement
     ? Object.values(slotRequirement).reduce((a, b) => a + b, 0)
-    : cfg.slots;
+    : cfg.slots);
 
   const room = {
     gameKey: cfg.game,
