@@ -247,6 +247,7 @@ function runGame() {
     gameView.classList.add("hidden");
     resultsView.classList.remove("hidden");
     renderFinalRosters();
+    wireShareButton(() => buildShareText(gameKey, players));
     // AI Judge is switched off for now (ai-judge.js/backend still exist,
     // just not wired up from here) - see room-play.js for the matching spot.
   }
@@ -316,6 +317,7 @@ function runGame() {
       awardItem(item, winner, price);
       logLine(`<strong>${winner.name}</strong> won <strong>${item.name}</strong> for ${price > 0 ? `$${price}` : "free"}`);
       pulseClass(document.getElementById("auction-card"), "win-flash");
+      celebrateWin(`${winner.name} won ${item.name} for ${price > 0 ? `$${price}` : "free"}`);
     } else {
       logLine(`${item.name} went unsold — nobody bid`);
     }

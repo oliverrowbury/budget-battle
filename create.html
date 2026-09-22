@@ -191,6 +191,38 @@
       box-shadow: none;
     }
 
+    .quick-play {
+      display: block;
+      width: 100%;
+      margin: 22px 0 8px;
+      padding: 18px;
+      border: none;
+      border-radius: 15px;
+      background: linear-gradient(135deg, #7c86ff, #2dd4bf);
+      color: #0a0714;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 17px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 8px 30px rgba(124, 134, 255, 0.28);
+      transition: 0.2s ease;
+      animation: quickPlayGlow 2.6s ease-in-out infinite;
+    }
+
+    .quick-play:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 40px rgba(124, 134, 255, 0.45);
+    }
+
+    .quick-play:active {
+      transform: translateY(0) scale(0.97);
+    }
+
+    @keyframes quickPlayGlow {
+      0%, 100% { box-shadow: 0 8px 30px rgba(124, 134, 255, 0.28); }
+      50% { box-shadow: 0 8px 38px rgba(45, 212, 191, 0.4); }
+    }
+
     .game-options {
       display: none;
       margin-top: 14px;
@@ -257,6 +289,7 @@
       Set the rules and challenge your opponents.
     </p>
 
+    <button class="quick-play" id="quick-play-btn">⚡ Quick Play — jump straight in</button>
 
     <div class="section">
 
@@ -295,7 +328,7 @@
 
       <div class="options">
 
-        <button class="option" data-value="2">2 Players</button>
+        <button class="option selected" data-value="2">2 Players</button>
         <button class="option" data-value="3">3 Players</button>
         <button class="option" data-value="4">4 Players</button>
 
@@ -313,7 +346,7 @@
       <div class="options">
 
         <button class="option" data-value="blind">🔒 Blind Bid</button>
-        <button class="option" data-value="open">⚔️ Open Bid</button>
+        <button class="option selected" data-value="open">⚔️ Open Bid</button>
 
       </div>
 

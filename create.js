@@ -10,6 +10,29 @@ function goTo(url) {
   else window.location.href = url;
 }
 
+// One tap, straight into a vs-AI game - no picking category/game/rules. Pulls
+// from every real game key across bidoffCategories, respects fixed
+// budget/slots where a mode has them (e.g. football's 1-goalkeeper squads).
+function allGameKeys() {
+  const keys = [];
+  Object.values(bidoffCategories).forEach((def) => {
+    if (def.subcategories) Object.values(def.subcategories).forEach((list) => keys.push(...list));
+    else keys.push(...def.games);
+  });
+  return keys;
+}
+
+document.getElementById("quick-play-btn").addEventListener("click", () => {
+  const keys = allGameKeys();
+  const gameKey = keys[Math.floor(Math.random() * keys.length)];
+  const fixedBudget = fixedBudgetFor(gameKey);
+  const cfg = { game: gameKey, players: 2, auction: "open", budget: fixedBudget || 20, slots: 5 };
+  const code = typeof encodeGameCode === "function" ? encodeGameCode(cfg) : null;
+  const urlParams = new URLSearchParams({ game: cfg.game, players: cfg.players, auction: cfg.auction, budget: cfg.budget, slots: cfg.slots, ai: "1" });
+  if (code) urlParams.set("code", code);
+  goTo(`play.html?${urlParams.toString()}`);
+});
+
 function poolLabel(key) {
   return key.replace(/^[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]\s*/u, "");
 }
