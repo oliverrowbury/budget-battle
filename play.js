@@ -111,9 +111,13 @@ function runGame() {
 
   const slotRequirement = (typeof gameSlots !== "undefined" && gameSlots[gameKey]) || null;
   const caps = (typeof categoryCaps !== "undefined" && categoryCaps[gameKey]) || null;
-  const totalSlotsPerPlayer = slotRequirement
+  // Most games' squad size is just the sum of their required positions, but
+  // some (football) only hard-require ONE position (goalkeeper) with the
+  // rest of the roster free-for-any-position - gameTotalSlots overrides the
+  // sum for those.
+  const totalSlotsPerPlayer = (typeof gameTotalSlots !== "undefined" && gameTotalSlots[gameKey]) || (slotRequirement
     ? Object.values(slotRequirement).reduce((a, b) => a + b, 0)
-    : slotsParam;
+    : slotsParam);
 
   const players = [];
   for (let i = 0; i < numPlayers; i++) {
@@ -160,9 +164,11 @@ function runGame() {
   function eligible(p, item) {
     if (p.budget < 1) return false;
     if (rosterFull(p)) return false;
-    if (item.position && p.needs) {
-      if (!(item.position in p.needs) || p.needs[item.position] <= 0) return false;
-    }
+    // Only a position actually TRACKED in needs (has a required count) can
+    // block eligibility here - a position with no requirement at all (e.g.
+    // football's outfield positions, which are free-for-any) is never
+    // gated by this check, only by roster space and any cap below.
+    if (item.position && p.needs && item.position in p.needs && p.needs[item.position] <= 0) return false;
     if (item.position && p.capsRemaining && item.position in p.capsRemaining) {
       if (p.capsRemaining[item.position] <= 0) return false;
     }
@@ -251,9 +257,7 @@ function runGame() {
 
   function eligibleIgnoreBudget(p, item) {
     if (rosterFull(p)) return false;
-    if (item.position && p.needs) {
-      if (!(item.position in p.needs) || p.needs[item.position] <= 0) return false;
-    }
+    if (item.position && p.needs && item.position in p.needs && p.needs[item.position] <= 0) return false;
     if (item.position && p.capsRemaining && item.position in p.capsRemaining) {
       if (p.capsRemaining[item.position] <= 0) return false;
     }

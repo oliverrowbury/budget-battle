@@ -149,8 +149,12 @@ function updateSlotsVisibility() {
   if (fixed) {
     slotsSection.classList.add("hidden");
     fixedInfo.classList.remove("hidden");
-    const total = Object.values(fixed).reduce((a, b) => a + b, 0);
+    const requiredTotal = Object.values(fixed).reduce((a, b) => a + b, 0);
+    const overrideTotal = typeof gameTotalSlots !== "undefined" ? gameTotalSlots[selectedGameKey] : null;
+    const total = overrideTotal || requiredTotal;
     const parts = Object.entries(fixed).map(([pos, count]) => `${count} ${pos}${count > 1 ? "s" : ""}`);
+    const freeCount = total - requiredTotal;
+    if (freeCount > 0) parts.push(`${freeCount} more of any position`);
     fixedText.textContent = `This game has fixed squad positions — ${parts.join(", ")} (${total} total). The slots setting below doesn't apply.`;
   } else {
     slotsSection.classList.remove("hidden");

@@ -129,9 +129,11 @@ function rpAllRostersFull(players, totalSlots) {
 function rpEligible(p, item, totalSlots) {
   if (p.budget < 1) return false;
   if (rpRosterFull(p, totalSlots)) return false;
-  if (item.position && p.needs) {
-    if (!(item.position in p.needs) || p.needs[item.position] <= 0) return false;
-  }
+  // Only a position actually TRACKED in needs (has a required count) can
+  // block eligibility here - a position with no requirement at all (e.g.
+  // football's outfield positions, which are free-for-any) is never gated
+  // by this check, only by roster space and any cap below.
+  if (item.position && p.needs && item.position in p.needs && p.needs[item.position] <= 0) return false;
   if (item.position && p.capsRemaining && item.position in p.capsRemaining) {
     if (p.capsRemaining[item.position] <= 0) return false;
   }
@@ -140,9 +142,7 @@ function rpEligible(p, item, totalSlots) {
 
 function rpEligibleIgnoreBudget(p, item, totalSlots) {
   if (rpRosterFull(p, totalSlots)) return false;
-  if (item.position && p.needs) {
-    if (!(item.position in p.needs) || p.needs[item.position] <= 0) return false;
-  }
+  if (item.position && p.needs && item.position in p.needs && p.needs[item.position] <= 0) return false;
   if (item.position && p.capsRemaining && item.position in p.capsRemaining) {
     if (p.capsRemaining[item.position] <= 0) return false;
   }

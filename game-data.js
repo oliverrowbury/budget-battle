@@ -8,45 +8,47 @@
 // Fixed roster composition required per player for game modes that
 // draft by position. Game modes not listed here have no position
 // requirement — any items from the pool can fill any slot.
-// Football/soccer modes default to 5-a-side squads (always 1 GK) so a game
-// plays out fast. "Football — Build a Full 11" is the one exception - a
-// separate gamemode that keeps the traditional 11-man lineup, paired with a
-// bigger $50 fixed budget in gameBudgets below.
-const FIVE_A_SIDE_SLOTS = { "Goalkeeper": 1, "Defender": 2, "Midfielder": 1, "Attacker": 1 };
-const FULL_11_SLOTS = { "Goalkeeper": 1, "Defender": 4, "Midfielder": 3, "Attacker": 3 };
+// Football/soccer only hard-requires a single goalkeeper - the rest of the
+// squad is free-for-any-outfield-position, no fixed defender/midfielder/
+// attacker counts. Squad SIZE (goalkeeper + free picks) comes from
+// gameTotalSlots below instead of summing this object, since it now only
+// tracks the one required position. 5-a-side is the default; "Football —
+// Build a Full 11" is the one exception - a separate gamemode with an
+// 11-player squad and a bigger $50 fixed budget in gameBudgets below.
+const GOALKEEPER_ONLY = { "Goalkeeper": 1 };
 
 const gameSlots = {
-  "Premier League — Current": FIVE_A_SIDE_SLOTS,
-  "Premier League — All-Time": FIVE_A_SIDE_SLOTS,
-  "La Liga — Current": FIVE_A_SIDE_SLOTS,
-  "La Liga — All-Time": FIVE_A_SIDE_SLOTS,
-  "Bundesliga — All-Time": FIVE_A_SIDE_SLOTS,
-  "Serie A — All-Time": FIVE_A_SIDE_SLOTS,
-  "Ligue 1 — All-Time": FIVE_A_SIDE_SLOTS,
-  "Football — All-Time": FIVE_A_SIDE_SLOTS,
-  "Football — Current": FIVE_A_SIDE_SLOTS,
-  "Football — Build a Full 11": FULL_11_SLOTS,
-  "England — All-Time": FIVE_A_SIDE_SLOTS,
-  "Spain — All-Time": FIVE_A_SIDE_SLOTS,
-  "France — All-Time": FIVE_A_SIDE_SLOTS,
-  "Germany — All-Time": FIVE_A_SIDE_SLOTS,
-  "Italy — All-Time": FIVE_A_SIDE_SLOTS,
-  "Brazil — All-Time": FIVE_A_SIDE_SLOTS,
-  "Argentina — All-Time": FIVE_A_SIDE_SLOTS,
-  "Football — Arsenal": FIVE_A_SIDE_SLOTS,
-  "Football — Manchester City": FIVE_A_SIDE_SLOTS,
-  "Football — Liverpool": FIVE_A_SIDE_SLOTS,
-  "Football — Chelsea": FIVE_A_SIDE_SLOTS,
-  "Football — Tottenham Hotspur": FIVE_A_SIDE_SLOTS,
-  "Football — Real Madrid": FIVE_A_SIDE_SLOTS,
-  "Football — Barcelona": FIVE_A_SIDE_SLOTS,
-  "Football — Atlético Madrid": FIVE_A_SIDE_SLOTS,
-  "Football — Bayern Munich": FIVE_A_SIDE_SLOTS,
-  "Football — Borussia Dortmund": FIVE_A_SIDE_SLOTS,
-  "Football — Paris Saint-Germain": FIVE_A_SIDE_SLOTS,
-  "Football — Juventus": FIVE_A_SIDE_SLOTS,
-  "Football — AC Milan": FIVE_A_SIDE_SLOTS,
-  "Football — Inter Milan": FIVE_A_SIDE_SLOTS,
+  "Premier League — Current": GOALKEEPER_ONLY,
+  "Premier League — All-Time": GOALKEEPER_ONLY,
+  "La Liga — Current": GOALKEEPER_ONLY,
+  "La Liga — All-Time": GOALKEEPER_ONLY,
+  "Bundesliga — All-Time": GOALKEEPER_ONLY,
+  "Serie A — All-Time": GOALKEEPER_ONLY,
+  "Ligue 1 — All-Time": GOALKEEPER_ONLY,
+  "Football — All-Time": GOALKEEPER_ONLY,
+  "Football — Current": GOALKEEPER_ONLY,
+  "Football — Build a Full 11": GOALKEEPER_ONLY,
+  "England — All-Time": GOALKEEPER_ONLY,
+  "Spain — All-Time": GOALKEEPER_ONLY,
+  "France — All-Time": GOALKEEPER_ONLY,
+  "Germany — All-Time": GOALKEEPER_ONLY,
+  "Italy — All-Time": GOALKEEPER_ONLY,
+  "Brazil — All-Time": GOALKEEPER_ONLY,
+  "Argentina — All-Time": GOALKEEPER_ONLY,
+  "Football — Arsenal": GOALKEEPER_ONLY,
+  "Football — Manchester City": GOALKEEPER_ONLY,
+  "Football — Liverpool": GOALKEEPER_ONLY,
+  "Football — Chelsea": GOALKEEPER_ONLY,
+  "Football — Tottenham Hotspur": GOALKEEPER_ONLY,
+  "Football — Real Madrid": GOALKEEPER_ONLY,
+  "Football — Barcelona": GOALKEEPER_ONLY,
+  "Football — Atlético Madrid": GOALKEEPER_ONLY,
+  "Football — Bayern Munich": GOALKEEPER_ONLY,
+  "Football — Borussia Dortmund": GOALKEEPER_ONLY,
+  "Football — Paris Saint-Germain": GOALKEEPER_ONLY,
+  "Football — Juventus": GOALKEEPER_ONLY,
+  "Football — AC Milan": GOALKEEPER_ONLY,
+  "Football — Inter Milan": GOALKEEPER_ONLY,
   "Build a 5-Course Meal": { "Starter": 1, "Soup": 1, "Salad": 1, "Main": 1, "Dessert": 1 },
   "Build a Movie": { "Genre": 1, "Lead Actor": 1, "Story": 1, "Traits": 1, "Money Spent On It": 1 },
   "NFL — Current": { "Quarterback": 1, "Running Back": 1, "Receiver": 2, "Defense": 1 },
@@ -60,8 +62,17 @@ const gameSlots = {
   "Cricket — One Team": { "Batsman": 2, "Bowler": 1, "All-Rounder": 1, "Wicketkeeper": 1 },
   "IPL — Current": { "Batsman": 2, "Bowler": 1, "All-Rounder": 1, "Wicketkeeper": 1 },
   "IPL — All-Time": { "Batsman": 2, "Bowler": 1, "All-Rounder": 1, "Wicketkeeper": 1 },
-  "Top Clubs — All-Time, One Club": FIVE_A_SIDE_SLOTS,
+  "Top Clubs — All-Time, One Club": GOALKEEPER_ONLY,
 };
+
+// Overrides the squad size for modes whose gameSlots no longer sums to the
+// real total (currently just football - see GOALKEEPER_ONLY above). Every
+// key here must also be a key in gameSlots.
+const FOOTBALL_FIVE_A_SIDE_KEYS = Object.keys(gameSlots).filter((k) => gameSlots[k] === GOALKEEPER_ONLY && k !== "Football — Build a Full 11");
+const gameTotalSlots = {
+  "Football — Build a Full 11": 11,
+};
+FOOTBALL_FIVE_A_SIDE_KEYS.forEach((k) => { gameTotalSlots[k] = 5; });
 
 // Fixed budgets for game modes that shouldn't use the normal $15/$20/$25
 // picker - "Football — Build a Full 11" needs real money for 11 slots.
